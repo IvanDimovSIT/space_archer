@@ -1,7 +1,4 @@
-use macroquad::{
-    prelude::info,
-    texture::{Texture2D, load_image},
-};
+use macroquad::{prelude::info, texture::Texture2D};
 
 const BOW1: &[u8] = include_bytes!("../resources/bow1.png");
 

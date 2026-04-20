@@ -6,17 +6,17 @@ mod draw;
 mod game;
 mod levels;
 mod model;
+mod physics;
 mod resource_manager;
 
 #[macroquad::main("Space Archer")]
 async fn main() {
-    let gameover = false;
     let levels = create_levels();
     let resource_manager = ResourceManager::load();
     let mut game = Game::new(&levels, 0);
 
-    while !gameover {
-        let delta = get_frame_time();
+    loop {
+        let delta = get_frame_time().min(0.04);
         game.update(delta);
         game.draw(&resource_manager);
         next_frame().await;
