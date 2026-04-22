@@ -6,7 +6,7 @@ use macroquad::{
 };
 
 use crate::{
-    model::{Arrow, Bow, Target},
+    model::{Arrow, Bow, Planet, Target},
     resource_manager::ResourceManager,
 };
 
@@ -20,7 +20,7 @@ pub fn draw_future_arrow_movements(positions: &[Vec2]) {
 pub fn draw_arrow(arrow: &Arrow) {
     const ARROW_SIZE: f32 = 2.0;
     draw_circle(arrow.position.x, arrow.position.y, ARROW_SIZE, WHITE);
-    let arrow_tail = arrow.position - arrow.direction * 10.0;
+    let arrow_tail = arrow.position - arrow.velocity.normalize_or_zero() * 10.0;
 
     draw_line(
         arrow.position.x,
@@ -56,4 +56,13 @@ pub fn draw_bow(bow: &Bow, resource_manager: &ResourceManager) {
 pub fn draw_target(target: &Target) {
     let bb = target.bounding_box();
     draw_rectangle(bb.x, bb.y, bb.w, bb.h, WHITE);
+}
+
+pub fn draw_planet(planet: &Planet) {
+    draw_circle(
+        planet.track.position.x,
+        planet.track.position.y,
+        planet.size,
+        WHITE,
+    );
 }

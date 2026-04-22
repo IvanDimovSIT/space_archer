@@ -1,4 +1,7 @@
-use macroquad::{prelude::info, texture::Texture2D};
+use macroquad::{
+    prelude::info,
+    texture::{FilterMode, Texture2D},
+};
 
 const BOW1: &[u8] = include_bytes!("../resources/bow1.png");
 
@@ -14,6 +17,11 @@ impl ResourceManager {
     }
 
     fn load_bow() -> Vec<Texture2D> {
-        vec![Texture2D::from_file_with_format(BOW1, None)]
+        let textures = vec![Texture2D::from_file_with_format(BOW1, None)];
+        for texture in &textures {
+            texture.set_filter(FilterMode::Nearest);
+        }
+
+        textures
     }
 }

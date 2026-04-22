@@ -1,6 +1,6 @@
 use macroquad::math::Vec2;
 
-use crate::model::{Arrow, Bow};
+use crate::model::{Arrow, Bow, Planet};
 
 #[derive(Debug)]
 pub struct Track<'a> {
@@ -10,14 +10,19 @@ pub struct Track<'a> {
     pub speed: f32,
 }
 
-pub fn simulate_future_arrow_movement(mut arrow: Arrow, bow: &Bow, samples: u8) -> Vec<Vec2> {
+pub fn simulate_future_arrow_movement(
+    mut arrow: Arrow,
+    planets: &[Planet],
+    bow: &Bow,
+    samples: u8,
+) -> Vec<Vec2> {
     const DELTA: f32 = 1.0 / 60.0;
     const STEPS_PER_SAMPLE: usize = 4;
-    arrow.speed = bow.strength;
+    arrow.velocity = bow.direction * bow.strength;
     let mut movements = Vec::with_capacity(samples as usize);
     for _ in 0..samples {
         for _ in 0..STEPS_PER_SAMPLE {
-            move_arrow(&mut arrow, DELTA);
+            move_arrow(&mut arrow, planets, DELTA);
         }
         movements.push(arrow.position);
     }
@@ -25,8 +30,17 @@ pub fn simulate_future_arrow_movement(mut arrow: Arrow, bow: &Bow, samples: u8) 
     movements
 }
 
-pub fn move_arrow(arrow: &mut Arrow, delta: f32) {
-    let delta_pos = arrow.direction * arrow.speed * delta;
+pub fn move_arrow(arrow: &mut Arrow, planets: &[Planet], delta: f32) {
+    const GRAVITY: f32 = 60_000.0;
+    for planet in planets {
+        let line_to_planet = planet.track.position - arrow.position;
+        let direction_to_planet = line_to_planet.normalize_or_zero();
+        let distance_to_planet = line_to_planet.length();
+        let gravity_force = delta * GRAVITY / (distance_to_planet * distance_to_planet);
+        arrow.velocity += gravity_force * direction_to_planet;
+    }
+
+    let delta_pos = arrow.velocity * delta;
     arrow.position += delta_pos;
 }
 

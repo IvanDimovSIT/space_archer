@@ -47,8 +47,8 @@ pub struct Target<'a> {
     pub track: Track<'a>,
 }
 impl<'a> Target<'a> {
-    const WIDTH: f32 = 3.0;
-    const HEIGHT: f32 = 15.0;
+    pub const WIDTH: f32 = 3.0;
+    pub const HEIGHT: f32 = 15.0;
 
     pub const fn bounding_box(&self) -> Rect {
         if self.template.flipped {
@@ -69,6 +69,51 @@ impl<'a> Target<'a> {
     }
 }
 
+#[derive(Debug)]
+pub struct PlanetTemplate {
+    pub positions: Vec<Vec2>,
+    pub speed: f32,
+    pub index: usize,
+    pub size: f32,
+}
+impl PlanetTemplate {
+    pub fn new(size: f32, speed: f32, positions: Vec<Vec2>, index: usize) -> Self {
+        assert!(!positions.is_empty());
+        assert!(index < positions.len());
+        if positions.len() > 1 {
+            assert!(speed > 0.01);
+        }
+        Self {
+            size,
+            speed,
+            positions,
+            index,
+        }
+    }
+
+    pub fn new_static(size: f32, position: Vec2) -> Self {
+        Self::new(size, 0.0, vec![position], 0)
+    }
+
+    pub fn instance(&self) -> Planet<'_> {
+        Planet {
+            track: Track {
+                points: &self.positions,
+                index: self.index,
+                position: self.positions[self.index],
+                speed: self.speed,
+            },
+            size: self.size,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Planet<'a> {
+    pub track: Track<'a>,
+    pub size: f32,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ArrowState {
     Unfired,
@@ -80,8 +125,7 @@ pub enum ArrowState {
 #[derive(Debug, Clone, Copy)]
 pub struct Arrow {
     pub position: Vec2,
-    pub direction: Vec2,
-    pub speed: f32,
+    pub velocity: Vec2,
     pub state: ArrowState,
     pub flight_time_s: f32,
 }
@@ -89,8 +133,7 @@ impl Default for Arrow {
     fn default() -> Self {
         Self {
             position: Vec2::ZERO,
-            direction: vec2(1.0, 0.0),
-            speed: 0.0,
+            velocity: vec2(1.0, 0.0),
             state: ArrowState::Unfired,
             flight_time_s: 0.0,
         }
@@ -117,27 +160,33 @@ impl Default for Bow {
 #[derive(Debug)]
 pub struct LevelTemplate {
     pub target: TargetTemplate,
+    pub planets: Vec<PlanetTemplate>,
 }
 impl LevelTemplate {
     pub fn instance(&'_ self) -> Level<'_> {
         Level {
-            template: self,
             target: self.target.instance(),
             arrow: Arrow::default(),
             bow: Bow::default(),
+            accuracy: 0.0,
+            planets: self.planets.iter().map(PlanetTemplate::instance).collect(),
+        }
+    }
+}
+impl Default for LevelTemplate {
+    fn default() -> Self {
+        Self {
+            target: TargetTemplate::new_static(false, vec2(100.0, 0.0)),
+            planets: vec![],
         }
     }
 }
 
 #[derive(Debug)]
 pub struct Level<'a> {
-    pub template: &'a LevelTemplate,
     pub target: Target<'a>,
+    pub planets: Vec<Planet<'a>>,
     pub bow: Bow,
     pub arrow: Arrow,
-}
-impl<'a> Level<'a> {
-    pub fn reset(&mut self) {
-        *self = self.template.instance();
-    }
+    pub accuracy: f32,
 }
