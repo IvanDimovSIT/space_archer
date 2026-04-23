@@ -94,6 +94,12 @@ impl<'a> Game<'a> {
         }
     }
 
+    pub fn set_level(&mut self, new_level: usize) {
+        debug_assert!(new_level < self.levels.len());
+        self.current_level_index = new_level;
+        self.reset_level();
+    }
+
     fn update_static_movement(&mut self, delta: f32) {
         calculate_static_movement(&mut self.level.target.track, delta);
         for planet in &mut self.level.planets {

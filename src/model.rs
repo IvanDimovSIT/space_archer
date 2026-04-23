@@ -47,8 +47,8 @@ pub struct Target<'a> {
     pub track: Track<'a>,
 }
 impl<'a> Target<'a> {
-    pub const WIDTH: f32 = 3.0;
-    pub const HEIGHT: f32 = 15.0;
+    pub const WIDTH: f32 = 5.0;
+    pub const HEIGHT: f32 = 22.0;
 
     pub const fn bounding_box(&self) -> Rect {
         if self.template.flipped {
