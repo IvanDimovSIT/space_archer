@@ -129,6 +129,9 @@ pub struct Arrow {
     pub state: ArrowState,
     pub flight_time_s: f32,
 }
+impl Arrow {
+    pub const SIZE: f32 = 15.0;
+}
 impl Default for Arrow {
     fn default() -> Self {
         Self {
@@ -146,6 +149,7 @@ pub struct Bow {
     pub direction: Vec2,
 }
 impl Bow {
+    pub const SIZE: f32 = 20.0;
     pub const MAX_STRENGTH: f32 = 80.0;
 }
 impl Default for Bow {

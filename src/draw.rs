@@ -1,8 +1,10 @@
+use std::f32::consts::PI;
+
 use macroquad::{
     color::WHITE,
-    math::{Vec2, vec2},
-    shapes::{draw_circle, draw_line, draw_rectangle},
-    texture::{DrawTextureParams, draw_texture_ex},
+    math::{vec2, Vec2},
+    shapes::{draw_circle, draw_rectangle},
+    texture::{draw_texture_ex, DrawTextureParams},
 };
 
 use crate::{
@@ -17,24 +19,25 @@ pub fn draw_future_arrow_movements(positions: &[Vec2]) {
     }
 }
 
-pub fn draw_arrow(arrow: &Arrow) {
-    const ARROW_SIZE: f32 = 2.0;
-    draw_circle(arrow.position.x, arrow.position.y, ARROW_SIZE, WHITE);
-    let arrow_tail = arrow.position - arrow.velocity.normalize_or_zero() * 10.0;
+pub fn draw_arrow(arrow: &Arrow, resource_manager: &ResourceManager) {
+    let arrow_direction =  arrow.velocity.normalize_or_zero();
+    let rotation = PI/2.0 - (arrow_direction.x).atan2(arrow_direction.y);
+    let center = arrow.position - arrow_direction * (Arrow::SIZE / 2.0);
+    let top_left = center - vec2(Arrow::SIZE/ 2.0, Arrow::SIZE/ 2.0);
 
-    draw_line(
-        arrow.position.x,
-        arrow.position.y,
-        arrow_tail.x,
-        arrow_tail.y,
-        1.0,
+    draw_texture_ex(
+        &resource_manager.arrow,
+        top_left.x,
+        top_left.y,
         WHITE,
-    );
+        DrawTextureParams {
+            dest_size: Some(vec2(Arrow::SIZE, Arrow::SIZE)),
+            rotation,
+            ..Default::default()
+        });
 }
 
 pub fn draw_bow(bow: &Bow, resource_manager: &ResourceManager) {
-    const BOW_SIZE: Vec2 = vec2(20.0, 20.0);
-
     let image_index = ((resource_manager.bow.len() as f32 * (bow.strength / Bow::MAX_STRENGTH))
         .floor() as usize)
         .min(resource_manager.bow.len() - 1);
@@ -42,11 +45,11 @@ pub fn draw_bow(bow: &Bow, resource_manager: &ResourceManager) {
     let rotation = bow.direction.y.asin();
     draw_texture_ex(
         texture,
-        -BOW_SIZE.x / 2.0,
-        -BOW_SIZE.y / 2.0,
+        -Bow::SIZE / 2.0,
+        -Bow::SIZE / 2.0,
         WHITE,
         DrawTextureParams {
-            dest_size: Some(BOW_SIZE),
+            dest_size: Some(vec2(Bow::SIZE, Bow::SIZE)),
             rotation,
             ..Default::default()
         },
@@ -58,11 +61,14 @@ pub fn draw_target(target: &Target) {
     draw_rectangle(bb.x, bb.y, bb.w, bb.h, WHITE);
 }
 
-pub fn draw_planet(planet: &Planet) {
-    draw_circle(
-        planet.track.position.x,
-        planet.track.position.y,
-        planet.size,
+pub fn draw_planet(planet: &Planet, resource_manager: &ResourceManager) {
+    let top_left = planet.track.position - Vec2::splat(planet.size);
+
+    draw_texture_ex(
+        &resource_manager.planets[0],
+        top_left.x,
+        top_left.y,
         WHITE,
+     DrawTextureParams { dest_size: Some(Vec2::splat(planet.size*2.0)), ..Default::default() }
     );
 }

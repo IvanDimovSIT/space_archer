@@ -12,7 +12,7 @@ use macroquad::{
 
 use crate::{
     draw::{draw_arrow, draw_bow, draw_future_arrow_movements, draw_planet, draw_target},
-    model::{ArrowState, Bow, Level, LevelTemplate, Target},
+    model::{Arrow, ArrowState, Bow, Level, LevelTemplate, Target},
     physics::{calculate_static_movement, move_arrow, simulate_future_arrow_movement},
     resource_manager::ResourceManager,
 };
@@ -66,11 +66,11 @@ impl<'a> Game<'a> {
             );
             draw_future_arrow_movements(&future_movements);
         }
-        draw_arrow(&self.level.arrow);
+        draw_arrow(&self.level.arrow, resource_manager);
         draw_bow(&self.level.bow, resource_manager);
         draw_target(&self.level.target);
         for p in &self.level.planets {
-            draw_planet(p);
+            draw_planet(p, resource_manager);
         }
     }
 
@@ -124,8 +124,9 @@ impl<'a> Game<'a> {
                 self.level.bow.direction =
                     (aim - self.level.arrow.position).normalize_or(vec2(1.0, 0.0));
                 self.level.arrow.velocity = self.level.bow.direction;
+                self.level.arrow.position = self.compute_arrow_position_unfired();
                 if is_mouse_button_down(macroquad::input::MouseButton::Left) {
-                    const BOW_PULL_SPEED: f32 = 35.0;
+                    const BOW_PULL_SPEED: f32 = 45.0;
                     self.level.bow.strength = (self.level.bow.strength + BOW_PULL_SPEED * delta)
                         .clamp(0.0, Bow::MAX_STRENGTH);
                 } else if is_mouse_button_released(macroquad::input::MouseButton::Left) {
@@ -148,6 +149,12 @@ impl<'a> Game<'a> {
             }
             _ => {}
         }
+    }
+
+    fn compute_arrow_position_unfired(&self) -> Vec2 {
+        const STRENGTH_MOD: f32 = Bow::MAX_STRENGTH / 1000.0;
+        const BASE_ARROW_POSITION_X: f32 = Arrow::SIZE * 0.9;
+        self.level.bow.direction*(BASE_ARROW_POSITION_X - self.level.bow.strength * STRENGTH_MOD)
     }
 
     fn arrow_has_missed(&self) -> bool {
