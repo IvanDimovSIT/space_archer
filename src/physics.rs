@@ -63,7 +63,7 @@ pub fn calculate_static_movement(track: &mut Track, delta: f32) {
         };
         distance_to_travel -= current_distance_to_travel;
         let movement_direction = line_to_next_point.normalize_or_zero();
-        let new_position = movement_direction * current_distance_to_travel;
+        let new_position = track.position + movement_direction * current_distance_to_travel;
         track.position = new_position;
     }
 }

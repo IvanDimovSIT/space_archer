@@ -1,18 +1,21 @@
 use macroquad::{
-    camera::{Camera2D, set_camera},
+    camera::{Camera2D, set_camera, set_default_camera},
     color::BLACK,
     input::{
         KeyCode, MouseButton, is_key_down, is_mouse_button_down, is_mouse_button_released,
         mouse_position,
     },
     math::{Rect, Vec2, vec2},
-    prelude::info,
+    prelude::{error, info},
     window::{clear_background, screen_height, screen_width},
 };
 
 use crate::{
-    draw::{draw_arrow, draw_bow, draw_future_arrow_movements, draw_planet, draw_target},
-    model::{Arrow, ArrowState, Bow, Level, LevelTemplate, Target},
+    draw::{
+        draw_arrow, draw_background, draw_bow, draw_future_arrow_movements, draw_miss_text,
+        draw_planet, draw_target, draw_win_text,
+    },
+    model::{Arrow, ArrowState, Bow, Level, LevelTemplate, Target, TargetFlip},
     physics::{calculate_static_movement, move_arrow, simulate_future_arrow_movement},
     resource_manager::ResourceManager,
 };
@@ -46,15 +49,11 @@ impl<'a> Game<'a> {
     }
 
     pub fn draw(&self, resource_manager: &ResourceManager) {
-        clear_background(BLACK);
-        // draw_rectangle_lines(
-        //     Self::GAME_BOUNDARY.x,
-        //     Self::GAME_BOUNDARY.y,
-        //     Self::GAME_BOUNDARY.w,
-        //     Self::GAME_BOUNDARY.h,
-        //     15.0,
-        //     WHITE,
-        // );
+        const BG_BRIGHTNESS: f32 = 0.8;
+        set_default_camera();
+        draw_background(resource_manager, BG_BRIGHTNESS);
+        set_camera(&self.camera);
+
         let should_draw_future_movements = self.level.arrow.state == ArrowState::Unfired
             && self.level.bow.strength > Bow::MAX_STRENGTH / 20.0;
         if should_draw_future_movements {
@@ -66,11 +65,18 @@ impl<'a> Game<'a> {
             );
             draw_future_arrow_movements(&future_movements);
         }
+        draw_target(&self.level.target, resource_manager);
         draw_arrow(&self.level.arrow, resource_manager);
         draw_bow(&self.level.bow, resource_manager);
-        draw_target(&self.level.target);
         for p in &self.level.planets {
             draw_planet(p, resource_manager);
+        }
+
+        set_default_camera();
+        match self.level.arrow.state {
+            ArrowState::Hit => draw_win_text(self.level.accuracy),
+            ArrowState::Missed => draw_miss_text(),
+            _ => {}
         }
     }
 
@@ -154,7 +160,7 @@ impl<'a> Game<'a> {
     fn compute_arrow_position_unfired(&self) -> Vec2 {
         const STRENGTH_MOD: f32 = Bow::MAX_STRENGTH / 1000.0;
         const BASE_ARROW_POSITION_X: f32 = Arrow::SIZE * 0.9;
-        self.level.bow.direction*(BASE_ARROW_POSITION_X - self.level.bow.strength * STRENGTH_MOD)
+        self.level.bow.direction * (BASE_ARROW_POSITION_X - self.level.bow.strength * STRENGTH_MOD)
     }
 
     fn arrow_has_missed(&self) -> bool {
@@ -190,13 +196,18 @@ impl<'a> Game<'a> {
     }
 
     fn determine_accuracy(&mut self) {
-        let target = &self.level.target;
+        let target_bb = &self.level.target.bounding_box();
         let arrow_pos = self.level.arrow.position;
-        self.level.accuracy = if target.template.flipped {
-            (Target::WIDTH - (target.track.position.x - arrow_pos.x).abs() * 2.0) / Target::WIDTH
+        self.level.accuracy = if self.level.target.template.flipped == TargetFlip::Right {
+            (target_bb.h - (target_bb.h / 2.0 + target_bb.y - arrow_pos.y).abs() * 2.0)
+                / target_bb.h
         } else {
-            (Target::HEIGHT - (target.track.position.y - arrow_pos.y).abs() * 2.0) / Target::HEIGHT
+            (target_bb.w - (target_bb.w / 2.0 + target_bb.x - arrow_pos.x).abs() * 2.0)
+                / target_bb.w
         };
+        if self.level.accuracy < 0.0 || self.level.accuracy > 1.0 {
+            error!("Invalid accuracy: {}", self.level.accuracy);
+        }
     }
 
     fn update_camera(&mut self) {

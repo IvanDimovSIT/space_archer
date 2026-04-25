@@ -1,9 +1,7 @@
 use macroquad::{
     prelude::info,
-    texture::{FilterMode, Texture2D},
+    texture::{FilterMode, Texture2D, build_textures_atlas},
 };
-
-use crate::model::Planet;
 
 const BOW1: &[u8] = include_bytes!("../resources/bow1.png");
 const BOW2: &[u8] = include_bytes!("../resources/bow2.png");
@@ -14,29 +12,30 @@ const BOW6: &[u8] = include_bytes!("../resources/bow6.png");
 const BOW7: &[u8] = include_bytes!("../resources/bow7.png");
 const ARROW: &[u8] = include_bytes!("../resources/arrow.png");
 const PLANET1: &[u8] = include_bytes!("../resources/planet1.png");
+const TARGET: &[u8] = include_bytes!("../resources/target.png");
+const BG: &[u8] = include_bytes!("../resources/background.png");
 
 pub struct ResourceManager {
     pub bow: Vec<Texture2D>,
     pub arrow: Texture2D,
-    pub planets: Vec<Texture2D>
+    pub planets: Vec<Texture2D>,
+    pub target: Texture2D,
+    pub background: Texture2D,
 }
 impl ResourceManager {
     pub fn load() -> Self {
         info!("loading resources");
-        Self {
+        let resource_manager = Self {
             bow: Self::load_bow(),
-            arrow: Self::load_arrow(),
+            arrow: Self::load_texture(ARROW),
             planets: Self::load_planets(),
-        }
+            target: Self::load_texture(TARGET),
+            background: Self::load_texture(BG),
+        };
+        build_textures_atlas();
+
+        resource_manager
     }
-
-    fn load_arrow() -> Texture2D {
-        let arrow = Texture2D::from_file_with_format(ARROW, None);
-        arrow.set_filter(FilterMode::Nearest);
-
-        arrow
-    }
-
     fn load_planets() -> Vec<Texture2D> {
         let planet_files = [PLANET1];
 
@@ -50,13 +49,16 @@ impl ResourceManager {
     }
 
     fn load_textures(bytes: &[&[u8]]) -> Vec<Texture2D> {
-        let textures: Vec<_> = bytes.into_iter()
-            .map(|bytes| Texture2D::from_file_with_format(bytes, None))
-            .collect();
-        for texture in &textures {
-            texture.set_filter(FilterMode::Nearest);
-        }
+        bytes
+            .iter()
+            .map(|bytes| Self::load_texture(bytes))
+            .collect()
+    }
 
-        textures
+    fn load_texture(bytes: &[u8]) -> Texture2D {
+        let texture = Texture2D::from_file_with_format(bytes, None);
+        texture.set_filter(FilterMode::Nearest);
+
+        texture
     }
 }

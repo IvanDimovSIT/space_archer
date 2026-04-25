@@ -2,15 +2,22 @@ use macroquad::math::{Rect, Vec2, vec2};
 
 use crate::physics::Track;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TargetFlip {
+    Right,
+    Top,
+    Bottom,
+}
+
 #[derive(Debug)]
 pub struct TargetTemplate {
-    pub flipped: bool,
+    pub flipped: TargetFlip,
     pub speed: f32,
     pub positions: Vec<Vec2>,
     pub index: usize,
 }
 impl TargetTemplate {
-    pub fn new(flipped: bool, speed: f32, positions: Vec<Vec2>, index: usize) -> Self {
+    pub fn new(flipped: TargetFlip, speed: f32, positions: Vec<Vec2>, index: usize) -> Self {
         assert!(!positions.is_empty());
         assert!(index < positions.len());
         if positions.len() > 1 {
@@ -24,7 +31,7 @@ impl TargetTemplate {
         }
     }
 
-    pub fn new_static(flipped: bool, position: Vec2) -> Self {
+    pub fn new_static(flipped: TargetFlip, position: Vec2) -> Self {
         Self::new(flipped, 0.0, vec![position], 0)
     }
 
@@ -47,11 +54,11 @@ pub struct Target<'a> {
     pub track: Track<'a>,
 }
 impl<'a> Target<'a> {
-    pub const WIDTH: f32 = 5.0;
+    pub const WIDTH: f32 = 10.0;
     pub const HEIGHT: f32 = 22.0;
 
     pub const fn bounding_box(&self) -> Rect {
-        if self.template.flipped {
+        if !matches!(self.template.flipped, TargetFlip::Right) {
             Rect {
                 x: self.track.position.x - Self::HEIGHT / 2.0,
                 y: self.track.position.y - Self::WIDTH / 2.0,
@@ -180,7 +187,7 @@ impl LevelTemplate {
 impl Default for LevelTemplate {
     fn default() -> Self {
         Self {
-            target: TargetTemplate::new_static(false, vec2(100.0, 0.0)),
+            target: TargetTemplate::new_static(TargetFlip::Right, vec2(100.0, 0.0)),
             planets: vec![],
         }
     }

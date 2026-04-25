@@ -1,17 +1,17 @@
 use macroquad::{
     camera::set_default_camera,
     color::{BLACK, Color, WHITE},
-    input::{MouseButton, is_mouse_button_down, is_mouse_button_released, mouse_position},
+    input::{MouseButton, is_mouse_button_released, mouse_position},
     math::{Rect, vec2},
     miniquad::window::screen_size,
     prelude::error,
-    shapes::{DrawRectangleParams, draw_rectangle, draw_rectangle_ex, draw_rectangle_lines},
-    text::draw_text,
+    shapes::{draw_rectangle, draw_rectangle_lines},
+    text::{TextParams, draw_text, draw_text_ex, measure_text},
     window::clear_background,
 };
 use std::fmt::Write;
 
-use crate::{model::LevelTemplate, resource_manager::ResourceManager};
+use crate::{draw::draw_background, model::LevelTemplate, resource_manager::ResourceManager};
 
 #[derive(Debug)]
 pub struct LevelSelection {
@@ -29,16 +29,19 @@ impl LevelSelection {
     }
 
     /// returns selected level
-    pub fn draw_level_selection(&mut self, _resource_manager: &ResourceManager) -> Option<usize> {
+    pub fn draw_level_selection(&mut self, resource_manager: &ResourceManager) -> Option<usize> {
         const ROWS: usize = 3;
         const COLUMNS: usize = 8;
         const LEVELS_PER_PAGE: usize = ROWS * COLUMNS;
         const BUTTON_OFFSET: f32 = 10.0;
         const BUTTON_SIZE: f32 = 0.09;
         const Y_POS: f32 = 0.25;
+        const BG_BRIGHTNESS: f32 = 0.4;
         set_default_camera();
-        clear_background(BLACK);
+        draw_background(resource_manager, BG_BRIGHTNESS);
         let (width, height) = screen_size();
+        Self::draw_title(width, height);
+
         let mut buffer = String::with_capacity(2);
         let mut selected = None;
         let range = (self.page * LEVELS_PER_PAGE)
@@ -89,6 +92,36 @@ impl LevelSelection {
         self.page = (self.page as i32 + page_change) as usize;
 
         selected
+    }
+
+    fn draw_title(width: f32, height: f32) {
+        const TITLE: &str = "SPACE ARCHER";
+        let y = 0.15 * height;
+        let font_size = (0.1 * height) as u16;
+        let shadow_offset = 0.005 * height;
+
+        let text_width = measure_text(TITLE, None, font_size, 1.0).width;
+        let x = (width - text_width) / 2.0;
+        draw_text_ex(
+            TITLE,
+            x + shadow_offset,
+            y + shadow_offset,
+            TextParams {
+                font_size,
+                color: Color::from_rgba(255, 255, 255, 80),
+                ..Default::default()
+            },
+        );
+        draw_text_ex(
+            TITLE,
+            x,
+            y,
+            TextParams {
+                font_size,
+                color: WHITE,
+                ..Default::default()
+            },
+        );
     }
 }
 
