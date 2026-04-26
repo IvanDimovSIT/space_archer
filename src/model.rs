@@ -158,6 +158,7 @@ pub struct Bow {
 impl Bow {
     pub const SIZE: f32 = 20.0;
     pub const MAX_STRENGTH: f32 = 80.0;
+    pub const LOCATION: Vec2 = Vec2::ZERO;
 }
 impl Default for Bow {
     fn default() -> Self {

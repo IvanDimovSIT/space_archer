@@ -3,10 +3,15 @@ use macroquad::math::vec2;
 use crate::model::{LevelTemplate, PlanetTemplate, TargetFlip, TargetTemplate};
 
 pub fn create_levels() -> Vec<LevelTemplate> {
-    vec![level1(), level2(), level3(), level4()]
+    vec![
+        introduction_level(),
+        top_target_level(),
+        moving_top_target_level(),
+        planet_introduction_level(),
+    ]
 }
 
-fn level1() -> LevelTemplate {
+fn introduction_level() -> LevelTemplate {
     let target = TargetTemplate::new_static(TargetFlip::Right, vec2(200.0, 0.0));
 
     LevelTemplate {
@@ -15,7 +20,7 @@ fn level1() -> LevelTemplate {
     }
 }
 
-fn level2() -> LevelTemplate {
+fn top_target_level() -> LevelTemplate {
     let target = TargetTemplate::new_static(TargetFlip::Top, vec2(100.0, -40.0));
 
     LevelTemplate {
@@ -24,7 +29,7 @@ fn level2() -> LevelTemplate {
     }
 }
 
-fn level3() -> LevelTemplate {
+fn moving_top_target_level() -> LevelTemplate {
     let target = TargetTemplate::new(
         TargetFlip::Top,
         15.0,
@@ -38,7 +43,7 @@ fn level3() -> LevelTemplate {
     }
 }
 
-fn level4() -> LevelTemplate {
+fn planet_introduction_level() -> LevelTemplate {
     let target = TargetTemplate::new_static(TargetFlip::Right, vec2(200.0, 0.0));
     let planet = PlanetTemplate::new_static(10.0, vec2(50.0, 30.0));
 

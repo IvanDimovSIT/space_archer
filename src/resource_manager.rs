@@ -1,4 +1,5 @@
 use macroquad::{
+    audio::{Sound, load_sound_from_bytes},
     prelude::info,
     texture::{FilterMode, Texture2D, build_textures_atlas},
 };
@@ -14,8 +15,28 @@ const ARROW: &[u8] = include_bytes!("../resources/arrow.png");
 const PLANET1: &[u8] = include_bytes!("../resources/planet1.png");
 const TARGET: &[u8] = include_bytes!("../resources/target.png");
 const BG: &[u8] = include_bytes!("../resources/background.png");
+const CLICK_SOUND: &[u8] = include_bytes!("../resources/click.wav");
+const HIT_SOUND: &[u8] = include_bytes!("../resources/hit.wav");
+
+pub struct Sounds {
+    pub click: Sound,
+    pub hit: Sound,
+}
+impl Sounds {
+    pub async fn load() -> Self {
+        Self {
+            click: load_sound_from_bytes(CLICK_SOUND)
+                .await
+                .expect("Error loading click sound"),
+            hit: load_sound_from_bytes(HIT_SOUND)
+                .await
+                .expect("Error loading hit sound"),
+        }
+    }
+}
 
 pub struct ResourceManager {
+    pub sounds: Sounds,
     pub bow: Vec<Texture2D>,
     pub arrow: Texture2D,
     pub planets: Vec<Texture2D>,
@@ -23,9 +44,10 @@ pub struct ResourceManager {
     pub background: Texture2D,
 }
 impl ResourceManager {
-    pub fn load() -> Self {
+    pub async fn load() -> Self {
         info!("loading resources");
         let resource_manager = Self {
+            sounds: Sounds::load().await,
             bow: Self::load_bow(),
             arrow: Self::load_texture(ARROW),
             planets: Self::load_planets(),

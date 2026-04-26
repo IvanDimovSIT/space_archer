@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
 
 use macroquad::{
-    color::{BLACK, Color, RED, WHITE},
+    color::{BLACK, Color, WHITE},
     math::{Vec2, vec2},
     miniquad::window::screen_size,
     shapes::{draw_circle, draw_rectangle},
@@ -49,8 +49,8 @@ pub fn draw_bow(bow: &Bow, resource_manager: &ResourceManager) {
     let rotation = bow.direction.y.asin();
     draw_texture_ex(
         texture,
-        -Bow::SIZE / 2.0,
-        -Bow::SIZE / 2.0,
+        Bow::LOCATION.x - Bow::SIZE / 2.0,
+        Bow::LOCATION.y - Bow::SIZE / 2.0,
         WHITE,
         DrawTextureParams {
             dest_size: Some(vec2(Bow::SIZE, Bow::SIZE)),
@@ -126,9 +126,12 @@ pub fn draw_background(resource_manager: &ResourceManager, brightness: f32) {
     );
 }
 
+pub fn accuracy_to_int(accuracy: f32) -> i32 {
+    (accuracy * 100.0).ceil() as i32
+}
+
 pub fn draw_win_text(accuracy: f32) {
-    const EXTRA_ACCURACY: f32 = 0.05;
-    let display_accuracy = ((accuracy + EXTRA_ACCURACY).clamp(0.0, 1.0) * 100.0) as i32;
+    let display_accuracy = accuracy_to_int(accuracy);
     let text = format!("HIT! ACCURACY: {}%", display_accuracy);
     draw_centered_in_game_text(&text);
 }
@@ -146,7 +149,7 @@ fn draw_centered_in_game_text(text: &str) {
     let font_size = (height * FONT_SIZE) as u16;
     let shadow_offset = height * SHADOW_OFFSET;
     let y = height * Y;
-    let text_size = measure_text(&text, None, font_size, 1.0);
+    let text_size = measure_text(text, None, font_size, 1.0);
     let x = (width - text_size.width) / 2.0;
 
     let rect_margin = MARGIN * height;
@@ -162,7 +165,7 @@ fn draw_centered_in_game_text(text: &str) {
         Color::from_rgba(0, 0, 0, 220),
     );
     draw_text_ex(
-        &text,
+        text,
         x + shadow_offset,
         y + shadow_offset,
         TextParams {
@@ -172,7 +175,7 @@ fn draw_centered_in_game_text(text: &str) {
         },
     );
     draw_text_ex(
-        &text,
+        text,
         x,
         y,
         TextParams {

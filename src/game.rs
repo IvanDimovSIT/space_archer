@@ -1,13 +1,13 @@
 use macroquad::{
+    audio::play_sound_once,
     camera::{Camera2D, set_camera, set_default_camera},
-    color::BLACK,
     input::{
-        KeyCode, MouseButton, is_key_down, is_mouse_button_down, is_mouse_button_released,
-        mouse_position,
+        KeyCode, MouseButton, is_key_down, is_key_released, is_mouse_button_down,
+        is_mouse_button_released, mouse_position,
     },
     math::{Rect, Vec2, vec2},
     prelude::{error, info},
-    window::{clear_background, screen_height, screen_width},
+    window::{screen_height, screen_width},
 };
 
 use crate::{
@@ -15,22 +15,29 @@ use crate::{
         draw_arrow, draw_background, draw_bow, draw_future_arrow_movements, draw_miss_text,
         draw_planet, draw_target, draw_win_text,
     },
-    model::{Arrow, ArrowState, Bow, Level, LevelTemplate, Target, TargetFlip},
+    level_select::LevelSelection,
+    model::{Arrow, ArrowState, Bow, Level, LevelTemplate, TargetFlip},
     physics::{calculate_static_movement, move_arrow, simulate_future_arrow_movement},
     resource_manager::ResourceManager,
 };
 
 pub struct Game<'a> {
+    resource_manager: &'a ResourceManager,
     levels: &'a [LevelTemplate],
     current_level_index: usize,
     level: Level<'a>,
     camera: Camera2D,
+    should_exit: bool,
 }
 impl<'a> Game<'a> {
     const GAME_BOUNDARY: Rect = Rect::new(-60.0, -100.0, 300.0, 220.0);
     const MAX_ARROW_FLIGHT_TIME_S: f32 = 15.0;
 
-    pub fn new(levels: &'a [LevelTemplate], current_level_index: usize) -> Self {
+    pub fn new(
+        resource_manager: &'a ResourceManager,
+        levels: &'a [LevelTemplate],
+        current_level_index: usize,
+    ) -> Self {
         assert!(!levels.is_empty());
         assert!(current_level_index < levels.len());
 
@@ -45,17 +52,19 @@ impl<'a> Game<'a> {
             current_level_index,
             level: levels[current_level_index].instance(),
             camera,
+            should_exit: false,
+            resource_manager,
         }
     }
 
-    pub fn draw(&self, resource_manager: &ResourceManager) {
+    pub fn draw(&self) {
         const BG_BRIGHTNESS: f32 = 0.8;
         set_default_camera();
-        draw_background(resource_manager, BG_BRIGHTNESS);
+        draw_background(self.resource_manager, BG_BRIGHTNESS);
         set_camera(&self.camera);
 
         let should_draw_future_movements = self.level.arrow.state == ArrowState::Unfired
-            && self.level.bow.strength > Bow::MAX_STRENGTH / 20.0;
+            && self.level.bow.strength > Bow::MAX_STRENGTH * 0.1;
         if should_draw_future_movements {
             let future_movements = simulate_future_arrow_movement(
                 self.level.arrow,
@@ -65,11 +74,11 @@ impl<'a> Game<'a> {
             );
             draw_future_arrow_movements(&future_movements);
         }
-        draw_target(&self.level.target, resource_manager);
-        draw_arrow(&self.level.arrow, resource_manager);
-        draw_bow(&self.level.bow, resource_manager);
+        draw_target(&self.level.target, self.resource_manager);
+        draw_arrow(&self.level.arrow, self.resource_manager);
+        draw_bow(&self.level.bow, self.resource_manager);
         for p in &self.level.planets {
-            draw_planet(p, resource_manager);
+            draw_planet(p, self.resource_manager);
         }
 
         set_default_camera();
@@ -80,14 +89,21 @@ impl<'a> Game<'a> {
         }
     }
 
-    pub fn update(&mut self, delta: f32) {
+    pub fn update(&mut self, delta: f32, level_selection: &mut LevelSelection) {
         self.update_camera();
         set_camera(&self.camera);
+        if is_key_released(KeyCode::M) {
+            self.should_exit = true;
+        }
+        if self.level.arrow.state != ArrowState::Hit && is_key_released(KeyCode::Escape) {
+            self.reset_level();
+        }
+
         let player_aim = self.get_player_aim();
         if !matches!(self.level.arrow.state, ArrowState::Missed | ArrowState::Hit) {
             self.update_static_movement(delta);
         }
-        self.update_arrow(delta, player_aim);
+        self.update_arrow(delta, player_aim, level_selection);
         if self.level.arrow.state != ArrowState::Hit && is_key_down(KeyCode::R) {
             self.reset_level();
         }
@@ -118,13 +134,26 @@ impl<'a> Game<'a> {
         self.level = self.levels[self.current_level_index].instance();
     }
 
+    pub fn should_exit(&mut self) -> bool {
+        if self.should_exit {
+            self.should_exit = false;
+            true
+        } else {
+            false
+        }
+    }
+
     fn next_level(&mut self) {
-        self.current_level_index = (self.current_level_index + 1).min(self.levels.len() - 1);
+        if self.current_level_index + 1 == self.levels.len() {
+            self.should_exit = true;
+            return;
+        }
+        self.current_level_index += 1;
         self.level = self.levels[self.current_level_index].instance();
         info!("New level {}", self.current_level_index);
     }
 
-    fn update_arrow(&mut self, delta: f32, aim: Vec2) {
+    fn update_arrow(&mut self, delta: f32, aim: Vec2, level_selection: &mut LevelSelection) {
         match self.level.arrow.state {
             ArrowState::Unfired => {
                 self.level.bow.direction =
@@ -151,7 +180,7 @@ impl<'a> Game<'a> {
                     info!("Missed, location: {}", self.level.arrow.position);
                     self.level.arrow.state = ArrowState::Missed;
                 }
-                self.detect_arrow_hit_target();
+                self.detect_arrow_hit_target(level_selection);
             }
             _ => {}
         }
@@ -172,6 +201,7 @@ impl<'a> Game<'a> {
 
         for planet in &self.level.planets {
             if self.level.arrow.position.distance(planet.track.position) < planet.size {
+                play_sound_once(&self.resource_manager.sounds.hit);
                 return true;
             }
         }
@@ -179,7 +209,7 @@ impl<'a> Game<'a> {
         false
     }
 
-    fn detect_arrow_hit_target(&mut self) {
+    fn detect_arrow_hit_target(&mut self, level_selection: &mut LevelSelection) {
         if self
             .level
             .target
@@ -187,7 +217,9 @@ impl<'a> Game<'a> {
             .contains(self.level.arrow.position)
         {
             self.determine_accuracy();
+            level_selection.add_completed(self.current_level_index, self.level.accuracy);
             self.level.arrow.state = ArrowState::Hit;
+            play_sound_once(&self.resource_manager.sounds.hit);
             info!(
                 "Hit, location: {}, accuracy: {}",
                 self.level.arrow.position, self.level.accuracy
@@ -196,6 +228,7 @@ impl<'a> Game<'a> {
     }
 
     fn determine_accuracy(&mut self) {
+        const EXTRA_ACCURACY: f32 = 0.05;
         let target_bb = &self.level.target.bounding_box();
         let arrow_pos = self.level.arrow.position;
         self.level.accuracy = if self.level.target.template.flipped == TargetFlip::Right {
@@ -208,6 +241,7 @@ impl<'a> Game<'a> {
         if self.level.accuracy < 0.0 || self.level.accuracy > 1.0 {
             error!("Invalid accuracy: {}", self.level.accuracy);
         }
+        self.level.accuracy = (self.level.accuracy + EXTRA_ACCURACY).clamp(0.0, 1.0);
     }
 
     fn update_camera(&mut self) {
@@ -216,8 +250,19 @@ impl<'a> Game<'a> {
     }
 
     fn get_player_aim(&self) -> Vec2 {
+        const MIN_DISTANCE: f32 = 30.0;
         let (mouse_x, mouse_y) = mouse_position();
-        let aim = self.camera.screen_to_world(vec2(mouse_x, mouse_y));
-        vec2(aim.x.max(0.0), aim.y)
+        let mut aim = self.camera.screen_to_world(vec2(mouse_x, mouse_y));
+        aim.x = aim.x.max(Bow::LOCATION.x);
+        let dist_to_bow = Bow::LOCATION.distance(aim);
+
+        if dist_to_bow <= f32::EPSILON {
+            return vec2(100.0, 0.0);
+        }
+        if dist_to_bow >= MIN_DISTANCE {
+            return aim;
+        }
+
+        Bow::LOCATION + aim * (MIN_DISTANCE / dist_to_bow)
     }
 }
