@@ -1,6 +1,6 @@
 use macroquad::math::Vec2;
 
-use crate::model::{Arrow, Bow, Planet};
+use crate::model::{Arrow, Barier, Bow, Planet};
 
 #[derive(Debug)]
 pub struct Track<'a> {
@@ -13,16 +13,20 @@ pub struct Track<'a> {
 pub fn simulate_future_arrow_movement(
     mut arrow: Arrow,
     planets: &[Planet],
+    bariers: &[Barier],
     bow: &Bow,
     samples: u8,
 ) -> Vec<Vec2> {
     const DELTA: f32 = 1.0 / 60.0;
-    const STEPS_PER_SAMPLE: usize = 4;
+    const STEPS_PER_SAMPLE: usize = 3;
     arrow.velocity = bow.direction * bow.strength;
     let mut movements = Vec::with_capacity(samples as usize);
     for _ in 0..samples {
         for _ in 0..STEPS_PER_SAMPLE {
             move_arrow(&mut arrow, planets, DELTA);
+            if arrow_has_hit_barrier(&arrow, planets, bariers) {
+                return movements;
+            }
         }
         movements.push(arrow.position);
     }
@@ -30,8 +34,24 @@ pub fn simulate_future_arrow_movement(
     movements
 }
 
+pub fn arrow_has_hit_barrier(arrow: &Arrow, planets: &[Planet], bariers: &[Barier]) -> bool {
+    for planet in planets {
+        if arrow.position.distance(planet.track.position) < planet.size {
+            return true;
+        }
+    }
+
+    for barier in bariers {
+        if barier.get_rect().contains(arrow.position) {
+            return true;
+        }
+    }
+
+    false
+}
+
 pub fn move_arrow(arrow: &mut Arrow, planets: &[Planet], delta: f32) {
-    const GRAVITY: f32 = 60_000.0;
+    const GRAVITY: f32 = 180_000.0;
     for planet in planets {
         let line_to_planet = planet.track.position - arrow.position;
         let direction_to_planet = line_to_planet.normalize_or_zero();

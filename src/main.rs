@@ -12,6 +12,9 @@ mod levels;
 mod model;
 mod physics;
 mod resource_manager;
+mod ui;
+
+const ALL_LEVELS_UNLOCKED: bool = false;
 
 #[macroquad::main("Space Archer")]
 async fn main() {
@@ -19,6 +22,9 @@ async fn main() {
     let resource_manager = ResourceManager::load().await;
     let mut game = Game::new(&resource_manager, &levels, 0);
     let mut level_selection = LevelSelection::new(&levels);
+    if ALL_LEVELS_UNLOCKED {
+        level_selection.unlock_all_levels();
+    }
 
     loop {
         if level_selection.is_in_menu {

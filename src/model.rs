@@ -157,7 +157,7 @@ pub struct Bow {
 }
 impl Bow {
     pub const SIZE: f32 = 20.0;
-    pub const MAX_STRENGTH: f32 = 80.0;
+    pub const MAX_STRENGTH: f32 = 120.0;
     pub const LOCATION: Vec2 = Vec2::ZERO;
 }
 impl Default for Bow {
@@ -170,9 +170,65 @@ impl Default for Bow {
 }
 
 #[derive(Debug)]
+pub struct BarierTemplate {
+    pub size: Vec2,
+    pub positions: Vec<Vec2>,
+    pub speed: f32,
+    pub index: usize,
+}
+impl BarierTemplate {
+    pub fn new(size: Vec2, speed: f32, positions: Vec<Vec2>, index: usize) -> Self {
+        assert!(!positions.is_empty());
+        assert!(index < positions.len());
+        if positions.len() > 1 {
+            assert!(speed > 0.01);
+        }
+        Self {
+            size,
+            speed,
+            positions,
+            index,
+        }
+    }
+
+    pub fn new_static(rect: Rect) -> Self {
+        Self::new(vec2(rect.w, rect.h), 0.0, vec![vec2(rect.x, rect.y)], 0)
+    }
+
+    pub fn instance(&self) -> Barier<'_> {
+        Barier {
+            track: Track {
+                points: &self.positions,
+                index: self.index,
+                position: self.positions[self.index],
+                speed: self.speed,
+            },
+            size: self.size,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Barier<'a> {
+    pub track: Track<'a>,
+    pub size: Vec2,
+}
+impl<'a> Barier<'a> {
+    pub fn get_rect(&self) -> Rect {
+        Rect {
+            x: self.track.position.x,
+            y: self.track.position.y,
+            w: self.size.x,
+            h: self.size.y,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct LevelTemplate {
     pub target: TargetTemplate,
     pub planets: Vec<PlanetTemplate>,
+    pub bariers: Vec<BarierTemplate>,
 }
 impl LevelTemplate {
     pub fn instance(&'_ self) -> Level<'_> {
@@ -180,8 +236,10 @@ impl LevelTemplate {
             target: self.target.instance(),
             arrow: Arrow::default(),
             bow: Bow::default(),
-            accuracy: 0.0,
             planets: self.planets.iter().map(PlanetTemplate::instance).collect(),
+            bariers: self.bariers.iter().map(BarierTemplate::instance).collect(),
+            time: 0.0,
+            accuracy: 0.0,
         }
     }
 }
@@ -190,6 +248,7 @@ impl Default for LevelTemplate {
         Self {
             target: TargetTemplate::new_static(TargetFlip::Right, vec2(100.0, 0.0)),
             planets: vec![],
+            bariers: vec![],
         }
     }
 }
@@ -198,7 +257,9 @@ impl Default for LevelTemplate {
 pub struct Level<'a> {
     pub target: Target<'a>,
     pub planets: Vec<Planet<'a>>,
+    pub bariers: Vec<Barier<'a>>,
     pub bow: Bow,
     pub arrow: Arrow,
     pub accuracy: f32,
+    pub time: f32,
 }

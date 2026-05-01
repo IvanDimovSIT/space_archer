@@ -12,13 +12,17 @@ use macroquad::{
 
 use crate::{
     draw::{
-        draw_arrow, draw_background, draw_bow, draw_future_arrow_movements, draw_miss_text,
-        draw_planet, draw_target, draw_win_text,
+        draw_arrow, draw_background, draw_barier, draw_bow, draw_future_arrow_movements,
+        draw_miss_text, draw_planet, draw_target, draw_win_text,
     },
     level_select::LevelSelection,
     model::{Arrow, ArrowState, Bow, Level, LevelTemplate, TargetFlip},
-    physics::{calculate_static_movement, move_arrow, simulate_future_arrow_movement},
+    physics::{
+        arrow_has_hit_barrier, calculate_static_movement, move_arrow,
+        simulate_future_arrow_movement,
+    },
     resource_manager::ResourceManager,
+    ui::draw_button,
 };
 
 pub struct Game<'a> {
@@ -57,7 +61,7 @@ impl<'a> Game<'a> {
         }
     }
 
-    pub fn draw(&self) {
+    pub fn draw(&mut self) {
         const BG_BRIGHTNESS: f32 = 0.8;
         set_default_camera();
         draw_background(self.resource_manager, BG_BRIGHTNESS);
@@ -69,6 +73,7 @@ impl<'a> Game<'a> {
             let future_movements = simulate_future_arrow_movement(
                 self.level.arrow,
                 &self.level.planets,
+                &self.level.bariers,
                 &self.level.bow,
                 12,
             );
@@ -80,6 +85,9 @@ impl<'a> Game<'a> {
         for p in &self.level.planets {
             draw_planet(p, self.resource_manager);
         }
+        for b in &self.level.bariers {
+            draw_barier(b, self.level.time);
+        }
 
         set_default_camera();
         match self.level.arrow.state {
@@ -87,6 +95,7 @@ impl<'a> Game<'a> {
             ArrowState::Missed => draw_miss_text(),
             _ => {}
         }
+        self.handle_back_to_menu_button();
     }
 
     pub fn update(&mut self, delta: f32, level_selection: &mut LevelSelection) {
@@ -101,9 +110,10 @@ impl<'a> Game<'a> {
 
         let player_aim = self.get_player_aim();
         if !matches!(self.level.arrow.state, ArrowState::Missed | ArrowState::Hit) {
+            self.level.time += delta;
             self.update_static_movement(delta);
+            self.update_arrow(delta, player_aim, level_selection);
         }
-        self.update_arrow(delta, player_aim, level_selection);
         if self.level.arrow.state != ArrowState::Hit && is_key_down(KeyCode::R) {
             self.reset_level();
         }
@@ -161,7 +171,7 @@ impl<'a> Game<'a> {
                 self.level.arrow.velocity = self.level.bow.direction;
                 self.level.arrow.position = self.compute_arrow_position_unfired();
                 if is_mouse_button_down(macroquad::input::MouseButton::Left) {
-                    const BOW_PULL_SPEED: f32 = 45.0;
+                    const BOW_PULL_SPEED: f32 = 70.0;
                     self.level.bow.strength = (self.level.bow.strength + BOW_PULL_SPEED * delta)
                         .clamp(0.0, Bow::MAX_STRENGTH);
                 } else if is_mouse_button_released(macroquad::input::MouseButton::Left) {
@@ -187,8 +197,8 @@ impl<'a> Game<'a> {
     }
 
     fn compute_arrow_position_unfired(&self) -> Vec2 {
-        const STRENGTH_MOD: f32 = Bow::MAX_STRENGTH / 1000.0;
-        const BASE_ARROW_POSITION_X: f32 = Arrow::SIZE * 0.9;
+        const STRENGTH_MOD: f32 = Bow::MAX_STRENGTH / 1800.0;
+        const BASE_ARROW_POSITION_X: f32 = Arrow::SIZE * 1.05;
         self.level.bow.direction * (BASE_ARROW_POSITION_X - self.level.bow.strength * STRENGTH_MOD)
     }
 
@@ -199,11 +209,9 @@ impl<'a> Game<'a> {
             return true;
         }
 
-        for planet in &self.level.planets {
-            if self.level.arrow.position.distance(planet.track.position) < planet.size {
-                play_sound_once(&self.resource_manager.sounds.hit);
-                return true;
-            }
+        if arrow_has_hit_barrier(&self.level.arrow, &self.level.planets, &self.level.bariers) {
+            play_sound_once(&self.resource_manager.sounds.hit);
+            return true;
         }
 
         false
@@ -264,5 +272,18 @@ impl<'a> Game<'a> {
         }
 
         Bow::LOCATION + aim * (MIN_DISTANCE / dist_to_bow)
+    }
+
+    fn handle_back_to_menu_button(&mut self) {
+        const BUTTON_RELATIVE_SIZE: f32 = 0.08;
+        let size = BUTTON_RELATIVE_SIZE * screen_height();
+        if draw_button(
+            self.resource_manager,
+            Rect::new(10.0, 10.0, size, size),
+            "<",
+            "",
+        ) {
+            self.should_exit = true;
+        }
     }
 }

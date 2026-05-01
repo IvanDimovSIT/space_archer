@@ -4,14 +4,16 @@ use macroquad::{
     color::{BLACK, Color, WHITE},
     math::{Vec2, vec2},
     miniquad::window::screen_size,
-    shapes::{draw_circle, draw_rectangle},
+    shapes::{
+        draw_circle, draw_rectangle, draw_rectangle_lines,
+    },
     text::{TextParams, draw_text_ex, measure_text},
     texture::{DrawTextureParams, draw_texture_ex},
     window::clear_background,
 };
 
 use crate::{
-    model::{Arrow, Bow, Planet, Target, TargetFlip},
+    model::{Arrow, Barier, Bow, Planet, Target, TargetFlip},
     resource_manager::ResourceManager,
 };
 
@@ -138,6 +140,25 @@ pub fn draw_win_text(accuracy: f32) {
 
 pub fn draw_miss_text() {
     draw_centered_in_game_text("MISSED!");
+}
+
+pub fn draw_barier(barier: &Barier, time: f32) {
+    const BARIER_BASE_COLOR: Color = Color::from_rgba(130, 140, 255, 0);
+    const LINES_THICKNESS: f32 = 2.0;
+    const MAX_BRIGHTNESS: f32 = 0.9;
+    const MIN_BRIGHTNESS: f32 = 0.7;
+    const CHANGE_BRIGHTNESS_SPEED: f32 = 2.0;
+
+    let rect = barier.get_rect();
+    let time_sin = (time * CHANGE_BRIGHTNESS_SPEED).sin();
+    let barier_brightness = time_sin * MAX_BRIGHTNESS + (1.0 - time_sin) * MIN_BRIGHTNESS;
+    let color = Color {
+        a: barier_brightness,
+        ..BARIER_BASE_COLOR
+    };
+
+    draw_rectangle(rect.x, rect.y, rect.w, rect.h, color);
+    draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, LINES_THICKNESS, WHITE);
 }
 
 fn draw_centered_in_game_text(text: &str) {
