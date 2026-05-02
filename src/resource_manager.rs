@@ -4,6 +4,8 @@ use macroquad::{
     texture::{FilterMode, Texture2D, build_textures_atlas},
 };
 
+use crate::model::PlanetAppearance;
+
 const BOW1: &[u8] = include_bytes!("../resources/bow1.png");
 const BOW2: &[u8] = include_bytes!("../resources/bow2.png");
 const BOW3: &[u8] = include_bytes!("../resources/bow3.png");
@@ -13,6 +15,7 @@ const BOW6: &[u8] = include_bytes!("../resources/bow6.png");
 const BOW7: &[u8] = include_bytes!("../resources/bow7.png");
 const ARROW: &[u8] = include_bytes!("../resources/arrow.png");
 const PLANET1: &[u8] = include_bytes!("../resources/planet1.png");
+const PLANET2: &[u8] = include_bytes!("../resources/planet2.png");
 const TARGET: &[u8] = include_bytes!("../resources/target.png");
 const BG: &[u8] = include_bytes!("../resources/background.png");
 const CLICK_SOUND: &[u8] = include_bytes!("../resources/click.wav");
@@ -58,8 +61,16 @@ impl ResourceManager {
 
         resource_manager
     }
+
+    pub fn get_planet_texture(&self, planet_appearance: PlanetAppearance) -> &Texture2D {
+        match planet_appearance {
+            PlanetAppearance::Red => &self.planets[0],
+            PlanetAppearance::Blue => &self.planets[1],
+        }
+    }
+
     fn load_planets() -> Vec<Texture2D> {
-        let planet_files = [PLANET1];
+        let planet_files = [PLANET1, PLANET2];
 
         Self::load_textures(&planet_files)
     }

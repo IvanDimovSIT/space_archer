@@ -76,15 +76,22 @@ impl<'a> Target<'a> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum PlanetAppearance {
+    Red,
+    Blue
+}
+
 #[derive(Debug)]
 pub struct PlanetTemplate {
     pub positions: Vec<Vec2>,
     pub speed: f32,
     pub index: usize,
     pub size: f32,
+    pub appearance: PlanetAppearance
 }
 impl PlanetTemplate {
-    pub fn new(size: f32, speed: f32, positions: Vec<Vec2>, index: usize) -> Self {
+    pub fn new(size: f32, speed: f32, positions: Vec<Vec2>, index: usize, appearance: PlanetAppearance) -> Self {
         assert!(!positions.is_empty());
         assert!(index < positions.len());
         if positions.len() > 1 {
@@ -95,11 +102,12 @@ impl PlanetTemplate {
             speed,
             positions,
             index,
+            appearance,
         }
     }
 
-    pub fn new_static(size: f32, position: Vec2) -> Self {
-        Self::new(size, 0.0, vec![position], 0)
+    pub fn new_static(size: f32, position: Vec2, appearance: PlanetAppearance) -> Self {
+        Self::new(size, 0.0, vec![position], 0, appearance)
     }
 
     pub fn instance(&self) -> Planet<'_> {
@@ -111,6 +119,7 @@ impl PlanetTemplate {
                 speed: self.speed,
             },
             size: self.size,
+            appearance: self.appearance,
         }
     }
 }
@@ -119,6 +128,7 @@ impl PlanetTemplate {
 pub struct Planet<'a> {
     pub track: Track<'a>,
     pub size: f32,
+    pub appearance: PlanetAppearance
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

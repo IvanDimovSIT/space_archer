@@ -100,9 +100,10 @@ pub fn draw_target(target: &Target, resource_manager: &ResourceManager) {
 
 pub fn draw_planet(planet: &Planet, resource_manager: &ResourceManager) {
     let top_left = planet.track.position - Vec2::splat(planet.size);
+    let texture = resource_manager.get_planet_texture(planet.appearance);
 
     draw_texture_ex(
-        &resource_manager.planets[0],
+        texture,
         top_left.x,
         top_left.y,
         WHITE,

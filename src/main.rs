@@ -8,6 +8,7 @@ use crate::{
 mod draw;
 mod game;
 mod level_select;
+#[allow(clippy::needless_update)]
 mod levels;
 mod model;
 mod physics;
