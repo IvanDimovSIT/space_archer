@@ -1,6 +1,6 @@
 use macroquad::math::Vec2;
 
-use crate::model::{Arrow, Barier, Bow, Planet};
+use crate::model::{Arrow, Barier, Bow, Planet, UFO, UFOTemplate};
 
 #[derive(Debug)]
 pub struct Track<'a> {
@@ -13,6 +13,7 @@ pub struct Track<'a> {
 pub fn simulate_future_arrow_movement(
     mut arrow: Arrow,
     planets: &[Planet],
+    ufos: &[UFO],
     bariers: &[Barier],
     bow: &Bow,
     samples: u8,
@@ -23,7 +24,7 @@ pub fn simulate_future_arrow_movement(
     let mut movements = Vec::with_capacity(samples as usize);
     for _ in 0..samples {
         for _ in 0..STEPS_PER_SAMPLE {
-            move_arrow(&mut arrow, planets, DELTA);
+            move_arrow(&mut arrow, planets, ufos, DELTA);
             if arrow_has_hit_barrier(&arrow, planets, bariers) {
                 return movements;
             }
@@ -50,7 +51,7 @@ pub fn arrow_has_hit_barrier(arrow: &Arrow, planets: &[Planet], bariers: &[Barie
     false
 }
 
-pub fn move_arrow(arrow: &mut Arrow, planets: &[Planet], delta: f32) {
+pub fn move_arrow(arrow: &mut Arrow, planets: &[Planet], ufos: &[UFO], delta: f32) {
     const GRAVITY: f32 = 180_000.0;
     for planet in planets {
         let line_to_planet = planet.track.position - arrow.position;
@@ -58,6 +59,12 @@ pub fn move_arrow(arrow: &mut Arrow, planets: &[Planet], delta: f32) {
         let distance_to_planet = line_to_planet.length();
         let gravity_force = delta * GRAVITY / (distance_to_planet * distance_to_planet);
         arrow.velocity += gravity_force * direction_to_planet;
+    }
+    for ufo in ufos {
+        let is_in_field = ufo.field_bb().contains(arrow.position);
+        if is_in_field {
+            arrow.velocity.y += UFOTemplate::FIELD_FORCE * delta;
+        }
     }
 
     let delta_pos = arrow.velocity * delta;

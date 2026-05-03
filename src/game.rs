@@ -13,7 +13,7 @@ use macroquad::{
 use crate::{
     draw::{
         draw_arrow, draw_background, draw_barier, draw_bow, draw_future_arrow_movements,
-        draw_miss_text, draw_planet, draw_target, draw_win_text,
+        draw_miss_text, draw_planet, draw_target, draw_ufo, draw_win_text,
     },
     level_select::LevelSelection,
     model::{Arrow, ArrowState, Bow, Level, LevelTemplate, TargetFlip},
@@ -35,7 +35,7 @@ pub struct Game<'a> {
 }
 impl<'a> Game<'a> {
     const GAME_BOUNDARY: Rect = Rect::new(-60.0, -100.0, 300.0, 220.0);
-    const MAX_ARROW_FLIGHT_TIME_S: f32 = 15.0;
+    const MAX_ARROW_FLIGHT_TIME_S: f32 = 10.0;
 
     pub fn new(
         resource_manager: &'a ResourceManager,
@@ -73,6 +73,7 @@ impl<'a> Game<'a> {
             let future_movements = simulate_future_arrow_movement(
                 self.level.arrow,
                 &self.level.planets,
+                &self.level.ufos,
                 &self.level.bariers,
                 &self.level.bow,
                 12,
@@ -87,6 +88,9 @@ impl<'a> Game<'a> {
         }
         for b in &self.level.bariers {
             draw_barier(b, self.level.time);
+        }
+        for u in &self.level.ufos {
+            draw_ufo(u, self.resource_manager);
         }
 
         set_default_camera();
@@ -137,6 +141,12 @@ impl<'a> Game<'a> {
         for planet in &mut self.level.planets {
             calculate_static_movement(&mut planet.track, delta);
         }
+        for barier in &mut self.level.bariers {
+            calculate_static_movement(&mut barier.track, delta);
+        }
+        for ufo in &mut self.level.ufos {
+            calculate_static_movement(&mut ufo.track, delta);
+        }
     }
 
     fn reset_level(&mut self) {
@@ -185,7 +195,12 @@ impl<'a> Game<'a> {
             }
             ArrowState::Moving => {
                 self.level.arrow.flight_time_s += delta;
-                move_arrow(&mut self.level.arrow, &self.level.planets, delta);
+                move_arrow(
+                    &mut self.level.arrow,
+                    &self.level.planets,
+                    &self.level.ufos,
+                    delta,
+                );
                 if self.arrow_has_missed() {
                     info!("Missed, location: {}", self.level.arrow.position);
                     self.level.arrow.state = ArrowState::Missed;
@@ -275,7 +290,7 @@ impl<'a> Game<'a> {
     }
 
     fn handle_back_to_menu_button(&mut self) {
-        const BUTTON_RELATIVE_SIZE: f32 = 0.08;
+        const BUTTON_RELATIVE_SIZE: f32 = 0.1;
         let size = BUTTON_RELATIVE_SIZE * screen_height();
         if draw_button(
             self.resource_manager,

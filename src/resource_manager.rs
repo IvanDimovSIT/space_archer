@@ -16,6 +16,9 @@ const BOW7: &[u8] = include_bytes!("../resources/bow7.png");
 const ARROW: &[u8] = include_bytes!("../resources/arrow.png");
 const PLANET1: &[u8] = include_bytes!("../resources/planet1.png");
 const PLANET2: &[u8] = include_bytes!("../resources/planet2.png");
+const PLANET3: &[u8] = include_bytes!("../resources/planet3.png");
+const UFO: &[u8] = include_bytes!("../resources/ufo.png");
+const UFO_FIELD: &[u8] = include_bytes!("../resources/ufo_field.png");
 const TARGET: &[u8] = include_bytes!("../resources/target.png");
 const BG: &[u8] = include_bytes!("../resources/background.png");
 const CLICK_SOUND: &[u8] = include_bytes!("../resources/click.wav");
@@ -45,6 +48,8 @@ pub struct ResourceManager {
     pub planets: Vec<Texture2D>,
     pub target: Texture2D,
     pub background: Texture2D,
+    pub ufo: Texture2D,
+    pub ufo_field: Texture2D,
 }
 impl ResourceManager {
     pub async fn load() -> Self {
@@ -56,6 +61,8 @@ impl ResourceManager {
             planets: Self::load_planets(),
             target: Self::load_texture(TARGET),
             background: Self::load_texture(BG),
+            ufo: Self::load_texture(UFO),
+            ufo_field: Self::load_texture(UFO_FIELD),
         };
         build_textures_atlas();
 
@@ -66,11 +73,12 @@ impl ResourceManager {
         match planet_appearance {
             PlanetAppearance::Red => &self.planets[0],
             PlanetAppearance::Blue => &self.planets[1],
+            PlanetAppearance::Brown => &self.planets[2],
         }
     }
 
     fn load_planets() -> Vec<Texture2D> {
-        let planet_files = [PLANET1, PLANET2];
+        let planet_files = [PLANET1, PLANET2, PLANET3];
 
         Self::load_textures(&planet_files)
     }

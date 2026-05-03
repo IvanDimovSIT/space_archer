@@ -4,16 +4,14 @@ use macroquad::{
     color::{BLACK, Color, WHITE},
     math::{Vec2, vec2},
     miniquad::window::screen_size,
-    shapes::{
-        draw_circle, draw_rectangle, draw_rectangle_lines,
-    },
+    shapes::{draw_circle, draw_rectangle, draw_rectangle_lines},
     text::{TextParams, draw_text_ex, measure_text},
     texture::{DrawTextureParams, draw_texture_ex},
     window::clear_background,
 };
 
 use crate::{
-    model::{Arrow, Barier, Bow, Planet, Target, TargetFlip},
+    model::{Arrow, Barier, Bow, Planet, Target, TargetFlip, UFO, UFOTemplate},
     resource_manager::ResourceManager,
 };
 
@@ -160,6 +158,32 @@ pub fn draw_barier(barier: &Barier, time: f32) {
 
     draw_rectangle(rect.x, rect.y, rect.w, rect.h, color);
     draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, LINES_THICKNESS, WHITE);
+}
+
+pub fn draw_ufo(ufo: &UFO, resource_manager: &ResourceManager) {
+    draw_texture_ex(
+        &resource_manager.ufo,
+        ufo.track.position.x,
+        ufo.track.position.y,
+        WHITE,
+        DrawTextureParams {
+            dest_size: Some(UFOTemplate::UFO_SIZE),
+            ..Default::default()
+        },
+    );
+
+    let field_x = ufo.track.position.x - (ufo.field_size.x - UFOTemplate::UFO_SIZE.x) / 2.0;
+    let field_y = ufo.track.position.y + UFOTemplate::UFO_SIZE.y;
+    draw_texture_ex(
+        &resource_manager.ufo_field,
+        field_x,
+        field_y,
+        WHITE,
+        DrawTextureParams {
+            dest_size: Some(ufo.field_size),
+            ..Default::default()
+        },
+    );
 }
 
 fn draw_centered_in_game_text(text: &str) {

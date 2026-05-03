@@ -79,7 +79,8 @@ impl<'a> Target<'a> {
 #[derive(Debug, Clone, Copy)]
 pub enum PlanetAppearance {
     Red,
-    Blue
+    Blue,
+    Brown,
 }
 
 #[derive(Debug)]
@@ -88,10 +89,16 @@ pub struct PlanetTemplate {
     pub speed: f32,
     pub index: usize,
     pub size: f32,
-    pub appearance: PlanetAppearance
+    pub appearance: PlanetAppearance,
 }
 impl PlanetTemplate {
-    pub fn new(size: f32, speed: f32, positions: Vec<Vec2>, index: usize, appearance: PlanetAppearance) -> Self {
+    pub fn new(
+        size: f32,
+        speed: f32,
+        positions: Vec<Vec2>,
+        index: usize,
+        appearance: PlanetAppearance,
+    ) -> Self {
         assert!(!positions.is_empty());
         assert!(index < positions.len());
         if positions.len() > 1 {
@@ -128,7 +135,7 @@ impl PlanetTemplate {
 pub struct Planet<'a> {
     pub track: Track<'a>,
     pub size: f32,
-    pub appearance: PlanetAppearance
+    pub appearance: PlanetAppearance,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -235,10 +242,71 @@ impl<'a> Barier<'a> {
 }
 
 #[derive(Debug)]
+pub struct UFOTemplate {
+    pub positions: Vec<Vec2>,
+    pub speed: f32,
+    pub index: usize,
+    pub field_size: Vec2,
+}
+impl UFOTemplate {
+    pub const UFO_SIZE: Vec2 = vec2(10.0, 10.0);
+    pub const FIELD_FORCE: f32 = 500.0;
+
+    pub fn new(field_size: Vec2, speed: f32, positions: Vec<Vec2>, index: usize) -> Self {
+        assert!(!positions.is_empty());
+        assert!(index < positions.len());
+        assert!(field_size.x > 0.1);
+        assert!(field_size.y > 0.1);
+        if positions.len() > 1 {
+            assert!(speed > 0.01);
+        }
+        Self {
+            speed,
+            positions,
+            index,
+            field_size,
+        }
+    }
+
+    pub fn new_static(field_size: Vec2, position: Vec2) -> Self {
+        Self::new(field_size, 0.0, vec![position], 0)
+    }
+
+    pub fn instance(&self) -> UFO<'_> {
+        UFO {
+            track: Track {
+                points: &self.positions,
+                index: self.index,
+                position: self.positions[self.index],
+                speed: self.speed,
+            },
+            field_size: self.field_size,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct UFO<'a> {
+    pub track: Track<'a>,
+    pub field_size: Vec2,
+}
+impl<'a> UFO<'a> {
+    pub fn field_bb(&self) -> Rect {
+        Rect::new(
+            self.track.position.x,
+            self.track.position.y,
+            self.field_size.x,
+            self.field_size.y,
+        )
+    }
+}
+
+#[derive(Debug)]
 pub struct LevelTemplate {
     pub target: TargetTemplate,
     pub planets: Vec<PlanetTemplate>,
     pub bariers: Vec<BarierTemplate>,
+    pub ufos: Vec<UFOTemplate>,
 }
 impl LevelTemplate {
     pub fn instance(&'_ self) -> Level<'_> {
@@ -248,6 +316,7 @@ impl LevelTemplate {
             bow: Bow::default(),
             planets: self.planets.iter().map(PlanetTemplate::instance).collect(),
             bariers: self.bariers.iter().map(BarierTemplate::instance).collect(),
+            ufos: self.ufos.iter().map(UFOTemplate::instance).collect(),
             time: 0.0,
             accuracy: 0.0,
         }
@@ -259,6 +328,7 @@ impl Default for LevelTemplate {
             target: TargetTemplate::new_static(TargetFlip::Right, vec2(100.0, 0.0)),
             planets: vec![],
             bariers: vec![],
+            ufos: vec![],
         }
     }
 }
@@ -268,6 +338,7 @@ pub struct Level<'a> {
     pub target: Target<'a>,
     pub planets: Vec<Planet<'a>>,
     pub bariers: Vec<Barier<'a>>,
+    pub ufos: Vec<UFO<'a>>,
     pub bow: Bow,
     pub arrow: Arrow,
     pub accuracy: f32,
