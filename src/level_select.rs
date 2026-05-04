@@ -9,8 +9,9 @@ use macroquad::{
 use std::fmt::Write;
 
 use crate::{
-    draw::{accuracy_to_int, draw_background},
+    draw::draw_background,
     model::LevelTemplate,
+    persistence::{load_completed_levels, save_completed_levels},
     resource_manager::ResourceManager,
     ui::{draw_button, draw_unselectable_button},
 };
@@ -20,7 +21,7 @@ pub struct LevelSelection {
     pub is_in_menu: bool,
     page: usize,
     level_count: usize,
-    completed: Vec<f32>,
+    completed: Vec<i32>,
 }
 impl LevelSelection {
     const ROWS: usize = 3;
@@ -32,26 +33,29 @@ impl LevelSelection {
     const BG_BRIGHTNESS: f32 = 0.4;
 
     pub fn new(levels: &[LevelTemplate]) -> Self {
+        let completed = load_completed_levels(levels.len());
+
         Self {
             is_in_menu: true,
             page: 0,
             level_count: levels.len(),
-            completed: Vec::with_capacity(levels.len()),
+            completed,
         }
     }
 
     pub fn unlock_all_levels(&mut self) {
         debug!("Unlocking all levels");
-        self.completed = vec![0.0; self.level_count];
+        self.completed = vec![0; self.level_count];
     }
 
-    pub fn add_completed(&mut self, level: usize, accuracy: f32) {
+    pub fn add_completed(&mut self, level: usize, accuracy: i32) {
         assert!(level <= self.completed.len());
         if level < self.completed.len() {
             self.completed[level] = self.completed[level].max(accuracy)
         } else {
             self.completed.push(accuracy);
         }
+        save_completed_levels(&self.completed);
     }
 
     /// returns selected level
@@ -89,8 +93,7 @@ impl LevelSelection {
             }
 
             if let Some(accuracy) = self.completed.get(index) {
-                let accuracy_percent = accuracy_to_int(*accuracy);
-                write!(&mut subtext_buffer, "{}%", accuracy_percent)
+                write!(&mut subtext_buffer, "{}%", *accuracy)
                     .expect("Error writing to subtext buffer");
             }
             if draw_button(

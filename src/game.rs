@@ -12,8 +12,9 @@ use macroquad::{
 
 use crate::{
     draw::{
-        draw_arrow, draw_background, draw_barier, draw_bow, draw_future_arrow_movements,
-        draw_miss_text, draw_planet, draw_target, draw_ufo, draw_win_text,
+        accuracy_to_int, draw_arrow, draw_background, draw_barier, draw_bow,
+        draw_future_arrow_movements, draw_miss_text, draw_planet, draw_target, draw_ufo,
+        draw_win_text,
     },
     level_select::LevelSelection,
     model::{Arrow, ArrowState, Bow, Level, LevelTemplate, TargetFlip},
@@ -240,7 +241,10 @@ impl<'a> Game<'a> {
             .contains(self.level.arrow.position)
         {
             self.determine_accuracy();
-            level_selection.add_completed(self.current_level_index, self.level.accuracy);
+            level_selection.add_completed(
+                self.current_level_index,
+                accuracy_to_int(self.level.accuracy),
+            );
             self.level.arrow.state = ArrowState::Hit;
             play_sound_once(&self.resource_manager.sounds.hit);
             info!(

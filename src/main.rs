@@ -11,6 +11,7 @@ mod level_select;
 #[allow(clippy::needless_update)]
 mod levels;
 mod model;
+mod persistence;
 mod physics;
 mod resource_manager;
 mod ui;

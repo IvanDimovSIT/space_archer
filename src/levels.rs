@@ -113,7 +113,12 @@ fn moving_2_planets_level() -> LevelTemplate {
 
 fn ufo_introduction_level() -> LevelTemplate {
     let target = TargetTemplate::new_static(TargetFlip::Bottom, vec2(120.0, 20.0));
-    let ufo = UFOTemplate::new(vec2(18.0, 40.0), 20.0, vec![vec2(80.0, -50.0), vec2(130.0, -50.0)], 0);
+    let ufo = UFOTemplate::new(
+        vec2(18.0, 40.0),
+        20.0,
+        vec![vec2(80.0, -50.0), vec2(130.0, -50.0)],
+        0,
+    );
     let barrier = BarierTemplate::new_static(Rect::new(90.0, 0.0, 10.0, 70.0));
 
     LevelTemplate {
