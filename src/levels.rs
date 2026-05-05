@@ -90,14 +90,14 @@ fn half_strength_level() -> LevelTemplate {
 fn moving_2_planets_level() -> LevelTemplate {
     let target = TargetTemplate::new_static(TargetFlip::Right, vec2(200.0, 0.0));
     let planet1 = PlanetTemplate::new(
-        18.0,
+        13.0,
         12.0,
         vec![vec2(60.0, 45.0), vec2(60.0, 0.0), vec2(60.0, -45.0)],
         1,
         PlanetAppearance::Blue,
     );
     let planet2 = PlanetTemplate::new(
-        18.0,
+        13.0,
         12.0,
         vec![vec2(130.0, -45.0), vec2(130.0, 0.0), vec2(130.0, 45.0)],
         1,

@@ -52,12 +52,12 @@ pub fn arrow_has_hit_barrier(arrow: &Arrow, planets: &[Planet], bariers: &[Barie
 }
 
 pub fn move_arrow(arrow: &mut Arrow, planets: &[Planet], ufos: &[UFO], delta: f32) {
-    const GRAVITY: f32 = 180_000.0;
+    const GRAVITY: f32 = 1_500.0;
     for planet in planets {
         let line_to_planet = planet.track.position - arrow.position;
         let direction_to_planet = line_to_planet.normalize_or_zero();
         let distance_to_planet = line_to_planet.length();
-        let gravity_force = delta * GRAVITY / (distance_to_planet * distance_to_planet);
+        let gravity_force = planet.size * planet.size * delta * GRAVITY / (distance_to_planet * distance_to_planet);
         arrow.velocity += gravity_force * direction_to_planet;
     }
     for ufo in ufos {

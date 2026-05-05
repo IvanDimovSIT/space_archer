@@ -178,7 +178,7 @@ impl<'a> Game<'a> {
         match self.level.arrow.state {
             ArrowState::Unfired => {
                 self.level.bow.direction =
-                    (aim - self.level.arrow.position).normalize_or(vec2(1.0, 0.0));
+                    (aim - Bow::LOCATION).normalize_or(vec2(1.0, 0.0));
                 self.level.arrow.velocity = self.level.bow.direction;
                 self.level.arrow.position = self.compute_arrow_position_unfired();
                 if is_mouse_button_down(macroquad::input::MouseButton::Left) {

@@ -172,18 +172,19 @@ pub fn draw_ufo(ufo: &UFO, resource_manager: &ResourceManager) {
         },
     );
 
-    let field_x = ufo.track.position.x - (ufo.field_size.x - UFOTemplate::UFO_SIZE.x) / 2.0;
-    let field_y = ufo.track.position.y + UFOTemplate::UFO_SIZE.y;
+    let field_bb = ufo.field_bb();
     draw_texture_ex(
         &resource_manager.ufo_field,
-        field_x,
-        field_y,
+        field_bb.x,
+        field_bb.y,
         WHITE,
         DrawTextureParams {
-            dest_size: Some(ufo.field_size),
+            dest_size: Some(vec2(field_bb.w, field_bb.h)),
             ..Default::default()
         },
     );
+
+    //draw_rectangle_lines(field_bb.x, field_bb.y, field_bb.w, field_bb.h, 2.0, WHITE);
 }
 
 fn draw_centered_in_game_text(text: &str) {
