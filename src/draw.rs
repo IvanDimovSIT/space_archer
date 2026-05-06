@@ -1,13 +1,7 @@
 use std::f32::consts::PI;
 
 use macroquad::{
-    color::{BLACK, Color, WHITE},
-    math::{Vec2, vec2},
-    miniquad::window::screen_size,
-    shapes::{draw_circle, draw_rectangle, draw_rectangle_lines},
-    text::{TextParams, draw_text_ex, measure_text},
-    texture::{DrawTextureParams, draw_texture_ex},
-    window::clear_background,
+    color::{Color, BLACK, WHITE}, input::mouse_position, math::{vec2, Rect, Vec2}, miniquad::window::screen_size, shapes::{draw_circle, draw_rectangle, draw_rectangle_lines}, text::{draw_text, draw_text_ex, measure_text, TextParams}, texture::{draw_texture_ex, DrawTextureParams, Texture2D}, window::clear_background
 };
 
 use crate::{
@@ -185,6 +179,106 @@ pub fn draw_ufo(ufo: &UFO, resource_manager: &ResourceManager) {
     );
 
     //draw_rectangle_lines(field_bb.x, field_bb.y, field_bb.w, field_bb.h, 2.0, WHITE);
+}
+
+pub fn draw_medals(resource_manager: &ResourceManager, completed_levels: &[i32], total_levels: usize) {
+    const REQUIRED_AVERAGE: i32 = 80;
+    const X_REL: f32 = 0.01;
+    const Y_BOTTOM: f32 = 0.01;
+    const MEDAL_SIZE: f32 = 0.2;
+    const MEDAL_RATIO: f32 = 0.5;
+    const FONT_SIZE: f32 = 0.05;
+    let average_accuracy = completed_levels.iter().sum::<i32>() / completed_levels.len() as i32;
+    let bronze_medal_text = ["Bronze Medal", "Complete all levels"];
+    let silver_medal_text_owned = [
+        "Silver Medal".to_owned(),
+        format!("Complete all levels with an average of {REQUIRED_AVERAGE}% accuracy"),
+        format!("Current: {average_accuracy}%")
+    ];
+    let silver_medal_text = silver_medal_text_owned.iter()
+        .map(|s| s.as_ref())
+        .collect::<Vec<_>>();
+    let gold_medal_text = ["Gold Medal", "Complete all levels with 100% accuracy"];
+
+    let medals_count = if completed_levels.len() != total_levels {
+        0
+    } else if completed_levels.iter().all(|acc| *acc == 100) {
+        3
+    } else if completed_levels.iter().sum::<i32>() / total_levels as i32 >= REQUIRED_AVERAGE {
+        2
+    } else {
+        1
+    };
+
+    let (width, height) = screen_size();
+    let size_y = height * MEDAL_SIZE;
+    let size_x = size_y * MEDAL_RATIO;
+    let margin = size_y * 0.2;
+    let y = (height - Y_BOTTOM * height) - size_y;
+    let x_start = X_REL * width;
+    let font_size = FONT_SIZE * height;
+
+    let rect_bronze_medal = Rect::new(x_start, y, size_x, size_y);
+    draw_medal(&resource_manager.medals[0], rect_bronze_medal, medals_count >= 1);
+
+    let rect_silver_medal = Rect::new(x_start + size_x + margin, y, size_x, size_y);
+    draw_medal(&resource_manager.medals[1], rect_silver_medal, medals_count >= 2);
+
+    let rect_gold_medal = Rect::new(x_start + 2.0*(size_x + margin), y, size_x, size_y);
+    draw_medal(&resource_manager.medals[2], rect_gold_medal, medals_count >= 3);
+
+    if draw_medal_text(rect_bronze_medal, font_size, &bronze_medal_text) {
+        return;
+    }
+    if draw_medal_text(rect_silver_medal, font_size, &silver_medal_text) {
+        return;
+    }
+    if draw_medal_text(rect_gold_medal, font_size, &gold_medal_text) {
+        return;
+    }
+}
+
+fn draw_medal(texture: &Texture2D, rect: Rect, active: bool) {
+    //draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 1.0, WHITE);
+    let color = if active {
+        WHITE
+    } else {
+        Color::from_rgba(30, 30, 30, 255)
+    };
+    draw_texture_ex(texture, rect.x, rect.y, color, DrawTextureParams { dest_size: Some(vec2(rect.w, rect.h)), ..Default::default()});
+}
+
+/// returns true if drawn
+fn draw_medal_text(medal_rect: Rect, font_size: f32, hover_text: &[&str]) -> bool {
+    let (mouse_x, mouse_y) = mouse_position();
+    let should_draw_text = medal_rect.contains(vec2(mouse_x, mouse_y));
+
+    if should_draw_text {
+        draw_text_box(mouse_x, mouse_y, font_size, hover_text);
+    }
+
+    should_draw_text
+}
+
+fn draw_text_box(x: f32, y: f32, font_size: f32, text: &[&str]) {
+    const MARGIN: f32 = 0.25;
+    if text.is_empty() {
+        return;
+    }
+    let width = text.iter()
+        .map(|line| measure_text(line, None, font_size as u16, 1.0).width.ceil() as i32)
+        .max()
+        .unwrap_or(0) as f32;
+    let text_height = measure_text(text[0], None, font_size as u16, 1.0).height;
+    let margin = text_height * MARGIN;
+    let height = (text_height + margin) * text.len() as f32;
+    let y_start = y - height;
+
+    draw_rectangle(x, y_start - text_height, width, height, Color::from_rgba(0, 0, 0, 200));
+    for (i, line) in text.iter().enumerate() {
+        let current_y = y_start + i as f32 * (text_height + margin);
+        draw_text(line, x, current_y, font_size, WHITE);
+    }
 }
 
 fn draw_centered_in_game_text(text: &str) {

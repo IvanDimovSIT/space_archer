@@ -23,6 +23,9 @@ const TARGET: &[u8] = include_bytes!("../resources/target.png");
 const BG: &[u8] = include_bytes!("../resources/background.png");
 const CLICK_SOUND: &[u8] = include_bytes!("../resources/click.wav");
 const HIT_SOUND: &[u8] = include_bytes!("../resources/hit.wav");
+const BRONZE_MEDAL: &[u8] = include_bytes!("../resources/bronze_medal.png");
+const SILVER_MEDAL: &[u8] = include_bytes!("../resources/silver_medal.png");
+const GOLD_MEDAL: &[u8] = include_bytes!("../resources/gold_medal.png");
 
 pub struct Sounds {
     pub click: Sound,
@@ -50,6 +53,7 @@ pub struct ResourceManager {
     pub background: Texture2D,
     pub ufo: Texture2D,
     pub ufo_field: Texture2D,
+    pub medals: Vec<Texture2D>,
 }
 impl ResourceManager {
     pub async fn load() -> Self {
@@ -63,6 +67,7 @@ impl ResourceManager {
             background: Self::load_texture(BG),
             ufo: Self::load_texture(UFO),
             ufo_field: Self::load_texture(UFO_FIELD),
+            medals: Self::load_medals(),
         };
         build_textures_atlas();
 
@@ -79,6 +84,12 @@ impl ResourceManager {
 
     fn load_planets() -> Vec<Texture2D> {
         let planet_files = [PLANET1, PLANET2, PLANET3];
+
+        Self::load_textures(&planet_files)
+    }
+
+    fn load_medals() -> Vec<Texture2D> {
+        let planet_files = [BRONZE_MEDAL, SILVER_MEDAL, GOLD_MEDAL];
 
         Self::load_textures(&planet_files)
     }

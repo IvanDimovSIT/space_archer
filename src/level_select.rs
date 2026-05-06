@@ -9,7 +9,7 @@ use macroquad::{
 use std::fmt::Write;
 
 use crate::{
-    draw::draw_background,
+    draw::{draw_background, draw_medals},
     model::LevelTemplate,
     persistence::{load_completed_levels, save_completed_levels},
     resource_manager::ResourceManager,
@@ -108,6 +108,7 @@ impl LevelSelection {
         }
 
         self.draw_nav_buttons(resource_manager, button_size, x_start, y_start);
+        draw_medals(resource_manager, &self.completed, self.level_count);
 
         selected
     }

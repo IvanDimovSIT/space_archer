@@ -177,8 +177,7 @@ impl<'a> Game<'a> {
     fn update_arrow(&mut self, delta: f32, aim: Vec2, level_selection: &mut LevelSelection) {
         match self.level.arrow.state {
             ArrowState::Unfired => {
-                self.level.bow.direction =
-                    (aim - Bow::LOCATION).normalize_or(vec2(1.0, 0.0));
+                self.level.bow.direction = (aim - Bow::LOCATION).normalize_or(vec2(1.0, 0.0));
                 self.level.arrow.velocity = self.level.bow.direction;
                 self.level.arrow.position = self.compute_arrow_position_unfired();
                 if is_mouse_button_down(macroquad::input::MouseButton::Left) {

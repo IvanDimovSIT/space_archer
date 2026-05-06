@@ -57,7 +57,8 @@ pub fn move_arrow(arrow: &mut Arrow, planets: &[Planet], ufos: &[UFO], delta: f3
         let line_to_planet = planet.track.position - arrow.position;
         let direction_to_planet = line_to_planet.normalize_or_zero();
         let distance_to_planet = line_to_planet.length();
-        let gravity_force = planet.size * planet.size * delta * GRAVITY / (distance_to_planet * distance_to_planet);
+        let gravity_force =
+            planet.size * planet.size * delta * GRAVITY / (distance_to_planet * distance_to_planet);
         arrow.velocity += gravity_force * direction_to_planet;
     }
     for ufo in ufos {

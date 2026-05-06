@@ -295,12 +295,7 @@ impl<'a> UFO<'a> {
         let field_x = self.track.position.x - (self.field_size.x - UFOTemplate::UFO_SIZE.x) / 2.0;
         let field_y = self.track.position.y + UFOTemplate::UFO_SIZE.y;
 
-        Rect::new(
-            field_x,
-            field_y,
-            self.field_size.x,
-            self.field_size.y,
-        )
+        Rect::new(field_x, field_y, self.field_size.x, self.field_size.y)
     }
 }
 
