@@ -2,8 +2,8 @@ use macroquad::{
     audio::play_sound_once,
     camera::{Camera2D, set_camera, set_default_camera},
     input::{
-        KeyCode, MouseButton, is_key_down, is_key_released, is_mouse_button_down,
-        is_mouse_button_released, mouse_position,
+        KeyCode, MouseButton, clear_input_queue, is_key_down, is_key_released,
+        is_mouse_button_down, is_mouse_button_released, mouse_position,
     },
     math::{Rect, Vec2, vec2},
     prelude::{error, info},
@@ -100,7 +100,7 @@ impl<'a> Game<'a> {
             ArrowState::Missed => draw_miss_text(),
             _ => {}
         }
-        self.handle_back_to_menu_button();
+        self.handle_in_game_buttons();
     }
 
     pub fn update(&mut self, delta: f32, level_selection: &mut LevelSelection) {
@@ -109,9 +109,6 @@ impl<'a> Game<'a> {
         if is_key_released(KeyCode::M) {
             self.should_exit = true;
         }
-        if self.level.arrow.state != ArrowState::Hit && is_key_released(KeyCode::Escape) {
-            self.reset_level();
-        }
 
         let player_aim = self.get_player_aim();
         if !matches!(self.level.arrow.state, ArrowState::Missed | ArrowState::Hit) {
@@ -119,15 +116,8 @@ impl<'a> Game<'a> {
             self.update_static_movement(delta);
             self.update_arrow(delta, player_aim, level_selection);
         }
-        if self.level.arrow.state != ArrowState::Hit && is_key_down(KeyCode::R) {
+        if is_key_released(KeyCode::R) || is_key_released(KeyCode::Escape) {
             self.reset_level();
-        }
-        if is_mouse_button_released(MouseButton::Left) {
-            match self.level.arrow.state {
-                ArrowState::Missed => self.reset_level(),
-                ArrowState::Hit => self.next_level(),
-                _ => {}
-            }
         }
     }
 
@@ -213,7 +203,7 @@ impl<'a> Game<'a> {
 
     fn compute_arrow_position_unfired(&self) -> Vec2 {
         const STRENGTH_MOD: f32 = Bow::MAX_STRENGTH / 1800.0;
-        const BASE_ARROW_POSITION_X: f32 = Arrow::SIZE * 1.05;
+        const BASE_ARROW_POSITION_X: f32 = Arrow::SIZE * 0.95;
         self.level.bow.direction * (BASE_ARROW_POSITION_X - self.level.bow.strength * STRENGTH_MOD)
     }
 
@@ -292,16 +282,48 @@ impl<'a> Game<'a> {
         Bow::LOCATION + aim * (MIN_DISTANCE / dist_to_bow)
     }
 
-    fn handle_back_to_menu_button(&mut self) {
+    fn handle_in_game_buttons(&mut self) {
+        const MARGIN: f32 = 10.0;
         const BUTTON_RELATIVE_SIZE: f32 = 0.1;
-        let size = BUTTON_RELATIVE_SIZE * screen_height();
+        const RESET_BUTTON_RELATIVE_SIZE_TO_BACK: f32 = 2.5;
+        let back_size = BUTTON_RELATIVE_SIZE * screen_height();
         if draw_button(
             self.resource_manager,
-            Rect::new(10.0, 10.0, size, size),
+            Rect::new(MARGIN, MARGIN, back_size, back_size),
             "<",
             "",
         ) {
             self.should_exit = true;
+            return;
+        }
+
+        let reset_button_width = RESET_BUTTON_RELATIVE_SIZE_TO_BACK * back_size;
+        let should_draw_reset_button = (self.level.arrow.flight_time_s > 3.0
+            && self.level.arrow.state == ArrowState::Moving)
+            || matches!(self.level.arrow.state, ArrowState::Missed | ArrowState::Hit);
+        if should_draw_reset_button
+            && draw_button(
+                self.resource_manager,
+                Rect::new(
+                    2.0 * MARGIN + back_size,
+                    MARGIN,
+                    reset_button_width,
+                    back_size,
+                ),
+                "Reset",
+                " (Press R)",
+            )
+        {
+            self.reset_level();
+            return;
+        }
+
+        if is_mouse_button_released(MouseButton::Left) {
+            match self.level.arrow.state {
+                ArrowState::Missed => self.reset_level(),
+                ArrowState::Hit => self.next_level(),
+                _ => {}
+            }
         }
     }
 }
