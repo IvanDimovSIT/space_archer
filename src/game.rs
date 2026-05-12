@@ -2,8 +2,8 @@ use macroquad::{
     audio::play_sound_once,
     camera::{Camera2D, set_camera, set_default_camera},
     input::{
-        KeyCode, MouseButton, clear_input_queue, is_key_down, is_key_released,
-        is_mouse_button_down, is_mouse_button_released, mouse_position,
+        KeyCode, MouseButton, is_key_released, is_mouse_button_down, is_mouse_button_released,
+        mouse_position,
     },
     math::{Rect, Vec2, vec2},
     prelude::{error, info},
@@ -13,8 +13,8 @@ use macroquad::{
 use crate::{
     draw::{
         accuracy_to_int, draw_arrow, draw_background, draw_barier, draw_bow,
-        draw_future_arrow_movements, draw_miss_text, draw_planet, draw_target, draw_ufo,
-        draw_win_text,
+        draw_current_level_number, draw_future_arrow_movements, draw_miss_text, draw_planet,
+        draw_target, draw_ufo, draw_win_text,
     },
     level_select::LevelSelection,
     model::{Arrow, ArrowState, Bow, Level, LevelTemplate, TargetFlip},
@@ -101,6 +101,7 @@ impl<'a> Game<'a> {
             _ => {}
         }
         self.handle_in_game_buttons();
+        draw_current_level_number(self.current_level_index);
     }
 
     pub fn update(&mut self, delta: f32, level_selection: &mut LevelSelection) {

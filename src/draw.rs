@@ -8,7 +8,7 @@ use macroquad::{
     shapes::{draw_circle, draw_rectangle, draw_rectangle_lines},
     text::{TextParams, draw_text, draw_text_ex, measure_text},
     texture::{DrawTextureParams, Texture2D, draw_texture_ex},
-    window::clear_background,
+    window::{clear_background, screen_height},
 };
 
 use crate::{
@@ -326,6 +326,27 @@ fn draw_text_box(x: f32, y: f32, font_size: f32, text: &[&str]) {
         let current_y = y_start + i as f32 * (text_height + margin);
         draw_text(line, x, current_y, font_size, WHITE);
     }
+}
+
+pub fn draw_current_level_number(level: usize) {
+    const FONT_SIZE: f32 = 0.08;
+    const MARGIN: f32 = 10.0;
+    const SHADOW_OFFSET: f32 = 2.0;
+    const SHADOW_COLOR: Color = Color::from_rgba(140, 140, 140, 255);
+    let height = screen_height();
+    let font_size = height * FONT_SIZE;
+    let text = format!("Level {}", level + 1);
+    let text_dimensions = measure_text(&text, None, font_size as u16, 1.0);
+    let y = MARGIN + height - text_dimensions.height;
+
+    draw_text(
+        &text,
+        MARGIN + SHADOW_OFFSET,
+        y + SHADOW_OFFSET,
+        font_size,
+        SHADOW_COLOR,
+    );
+    draw_text(&text, MARGIN, y, font_size, WHITE);
 }
 
 fn draw_centered_in_game_text(text: &[&str]) {
