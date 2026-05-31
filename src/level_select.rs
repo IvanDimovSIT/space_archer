@@ -9,11 +9,14 @@ use macroquad::{
 use std::fmt::Write;
 
 use crate::{
-    draw::{draw_background, draw_medals},
+    draw::{
+        GOLD_MEDAL_REQUIRED_ACC, HoveredMedal, SILVER_MEDAL_REQUIRED_AVERAGE_ACC, draw_background,
+        draw_medals,
+    },
     model::LevelTemplate,
     persistence::{load_completed_levels, save_completed_levels},
     resource_manager::ResourceManager,
-    ui::{draw_button, draw_unselectable_button},
+    ui::{draw_button, draw_button_with_params, draw_unselectable_button},
 };
 
 #[derive(Debug)]
@@ -22,6 +25,7 @@ pub struct LevelSelection {
     page: usize,
     level_count: usize,
     completed: Vec<i32>,
+    hovered_medal: HoveredMedal,
 }
 impl LevelSelection {
     const ROWS: usize = 3;
@@ -40,6 +44,7 @@ impl LevelSelection {
             page: 0,
             level_count: levels.len(),
             completed,
+            hovered_medal: HoveredMedal::None,
         }
     }
 
@@ -63,7 +68,7 @@ impl LevelSelection {
         set_default_camera();
         draw_background(resource_manager, Self::BG_BRIGHTNESS);
         let (width, height) = screen_size();
-        Self::draw_title(width, height);
+        Self::draw_title(resource_manager, width, height);
 
         let mut main_text_buffer = String::with_capacity(2);
         let mut subtext_buffer = String::with_capacity(4);
@@ -88,19 +93,23 @@ impl LevelSelection {
             }
             let button_rect = Rect::new(x, y, button_size, button_size);
             if self.completed.len() < index {
-                draw_unselectable_button(button_rect, &main_text_buffer);
+                draw_unselectable_button(resource_manager, button_rect, &main_text_buffer);
                 continue;
             }
 
-            if let Some(accuracy) = self.completed.get(index) {
+            let accuracy = if let Some(accuracy) = self.completed.get(index) {
                 write!(&mut subtext_buffer, "{}%", *accuracy)
                     .expect("Error writing to subtext buffer");
-            }
-            if draw_button(
+                *accuracy
+            } else {
+                0
+            };
+            if self.draw_level_button(
                 resource_manager,
                 button_rect,
                 &main_text_buffer,
                 &subtext_buffer,
+                accuracy,
             ) {
                 self.is_in_menu = false;
                 selected = Some(level);
@@ -108,9 +117,40 @@ impl LevelSelection {
         }
 
         self.draw_nav_buttons(resource_manager, button_size, x_start, y_start);
-        draw_medals(resource_manager, &self.completed, self.level_count);
+        self.hovered_medal = draw_medals(resource_manager, &self.completed, self.level_count);
 
         selected
+    }
+
+    fn draw_level_button(
+        &self,
+        resource_manager: &ResourceManager,
+        button_rect: Rect,
+        text: &str,
+        subtext: &str,
+        accuracy: i32,
+    ) -> bool {
+        const HIGHLIGHTED_BORDER_COLOR: Color = macroquad::color::RED;
+        const HIGHLIGHTED_BORDER_SIZE: f32 = 6.0;
+        let is_highlighted = match self.hovered_medal {
+            HoveredMedal::None => false,
+            HoveredMedal::Bronze => accuracy <= 0,
+            HoveredMedal::Silver => accuracy < SILVER_MEDAL_REQUIRED_AVERAGE_ACC,
+            HoveredMedal::Gold => accuracy < GOLD_MEDAL_REQUIRED_ACC,
+        };
+
+        if is_highlighted {
+            draw_button_with_params(
+                resource_manager,
+                button_rect,
+                text,
+                subtext,
+                HIGHLIGHTED_BORDER_COLOR,
+                HIGHLIGHTED_BORDER_SIZE,
+            )
+        } else {
+            draw_button(resource_manager, button_rect, text, subtext)
+        }
     }
 
     fn draw_nav_buttons(
@@ -151,19 +191,20 @@ impl LevelSelection {
         self.page = (self.page as i32 + page_change) as usize;
     }
 
-    fn draw_title(width: f32, height: f32) {
+    fn draw_title(resource_manager: &ResourceManager, width: f32, height: f32) {
         const TITLE: &str = "SPACE ARCHER";
         let y = 0.15 * height;
         let font_size = (0.1 * height) as u16;
         let shadow_offset = 0.005 * height;
 
-        let text_width = measure_text(TITLE, None, font_size, 1.0).width;
+        let text_width = measure_text(TITLE, Some(&resource_manager.font), font_size, 1.0).width;
         let x = (width - text_width) / 2.0;
         draw_text_ex(
             TITLE,
             x + shadow_offset,
             y + shadow_offset,
             TextParams {
+                font: Some(&resource_manager.font),
                 font_size,
                 color: Color::from_rgba(255, 255, 255, 80),
                 ..Default::default()
@@ -174,6 +215,7 @@ impl LevelSelection {
             x,
             y,
             TextParams {
+                font: Some(&resource_manager.font),
                 font_size,
                 color: WHITE,
                 ..Default::default()

@@ -6,7 +6,7 @@ use macroquad::{
     math::{Rect, Vec2, vec2},
     miniquad::window::screen_size,
     shapes::{draw_circle, draw_rectangle, draw_rectangle_lines},
-    text::{TextParams, draw_text, draw_text_ex, measure_text},
+    text::{TextParams, draw_text_ex, measure_text},
     texture::{DrawTextureParams, Texture2D, draw_texture_ex},
     window::{clear_background, screen_height},
 };
@@ -134,15 +134,15 @@ pub fn accuracy_to_int(accuracy: f32) -> i32 {
     (accuracy * 100.0).ceil() as i32
 }
 
-pub fn draw_win_text(accuracy: f32) {
+pub fn draw_win_text(resource_manager: &ResourceManager, accuracy: f32) {
     let display_accuracy = accuracy_to_int(accuracy);
     let accuracy_text = format!("HIT! ACCURACY: {}%", display_accuracy);
     let text = [&accuracy_text, "CLICK TO CONTINUE"];
-    draw_centered_in_game_text(&text);
+    draw_centered_in_game_text(resource_manager, &text);
 }
 
-pub fn draw_miss_text() {
-    draw_centered_in_game_text(&["MISSED!", "CLICK TO RESET"]);
+pub fn draw_miss_text(resource_manager: &ResourceManager) {
+    draw_centered_in_game_text(resource_manager, &["MISSED!", "CLICK TO RESET"]);
 }
 
 pub fn draw_barier(barier: &Barier, time: f32) {
@@ -191,17 +191,27 @@ pub fn draw_ufo(ufo: &UFO, resource_manager: &ResourceManager) {
     //draw_rectangle_lines(field_bb.x, field_bb.y, field_bb.w, field_bb.h, 2.0, WHITE);
 }
 
+#[derive(Debug)]
+pub enum HoveredMedal {
+    None,
+    Bronze,
+    Silver,
+    Gold,
+}
+
+pub const SILVER_MEDAL_REQUIRED_AVERAGE_ACC: i32 = 80;
+pub const GOLD_MEDAL_REQUIRED_ACC: i32 = 100;
+
 pub fn draw_medals(
     resource_manager: &ResourceManager,
     completed_levels: &[i32],
     total_levels: usize,
-) {
-    const REQUIRED_AVERAGE: i32 = 80;
+) -> HoveredMedal {
     const X_REL: f32 = 0.01;
     const Y_BOTTOM: f32 = 0.01;
     const MEDAL_SIZE: f32 = 0.2;
     const MEDAL_RATIO: f32 = 0.5;
-    const FONT_SIZE: f32 = 0.05;
+    const FONT_SIZE: f32 = 0.03;
     let average_accuracy = if completed_levels.is_empty() {
         0
     } else {
@@ -210,7 +220,9 @@ pub fn draw_medals(
     let bronze_medal_text = ["Bronze Medal", "Complete all levels"];
     let silver_medal_text_owned = [
         "Silver Medal".to_owned(),
-        format!("Complete all levels with an average of {REQUIRED_AVERAGE}% accuracy"),
+        format!(
+            "Complete all levels with an average of {SILVER_MEDAL_REQUIRED_AVERAGE_ACC}% accuracy"
+        ),
         format!("Current: {average_accuracy}%"),
     ];
     let silver_medal_text = silver_medal_text_owned
@@ -221,9 +233,14 @@ pub fn draw_medals(
 
     let medals_count = if completed_levels.len() != total_levels {
         0
-    } else if completed_levels.iter().all(|acc| *acc == 100) {
+    } else if completed_levels
+        .iter()
+        .all(|acc| *acc == GOLD_MEDAL_REQUIRED_ACC)
+    {
         3
-    } else if completed_levels.iter().sum::<i32>() / total_levels as i32 >= REQUIRED_AVERAGE {
+    } else if completed_levels.iter().sum::<i32>() / total_levels as i32
+        >= SILVER_MEDAL_REQUIRED_AVERAGE_ACC
+    {
         2
     } else {
         1
@@ -258,15 +275,32 @@ pub fn draw_medals(
         medals_count >= 3,
     );
 
-    if draw_medal_text(rect_bronze_medal, font_size, &bronze_medal_text) {
-        return;
+    if draw_medal_text(
+        resource_manager,
+        rect_bronze_medal,
+        font_size,
+        &bronze_medal_text,
+    ) {
+        return HoveredMedal::Bronze;
     }
-    if draw_medal_text(rect_silver_medal, font_size, &silver_medal_text) {
-        return;
+    if draw_medal_text(
+        resource_manager,
+        rect_silver_medal,
+        font_size,
+        &silver_medal_text,
+    ) {
+        return HoveredMedal::Silver;
     }
-    if draw_medal_text(rect_gold_medal, font_size, &gold_medal_text) {
-        return;
+    if draw_medal_text(
+        resource_manager,
+        rect_gold_medal,
+        font_size,
+        &gold_medal_text,
+    ) {
+        return HoveredMedal::Gold;
     }
+
+    HoveredMedal::None
 }
 
 fn draw_medal(texture: &Texture2D, rect: Rect, active: bool) {
@@ -289,28 +323,44 @@ fn draw_medal(texture: &Texture2D, rect: Rect, active: bool) {
 }
 
 /// returns true if drawn
-fn draw_medal_text(medal_rect: Rect, font_size: f32, hover_text: &[&str]) -> bool {
+fn draw_medal_text(
+    resource_manager: &ResourceManager,
+    medal_rect: Rect,
+    font_size: f32,
+    hover_text: &[&str],
+) -> bool {
     let (mouse_x, mouse_y) = mouse_position();
     let should_draw_text = medal_rect.contains(vec2(mouse_x, mouse_y));
 
     if should_draw_text {
-        draw_text_box(mouse_x, mouse_y, font_size, hover_text);
+        draw_text_box(resource_manager, mouse_x, mouse_y, font_size, hover_text);
     }
 
     should_draw_text
 }
 
-fn draw_text_box(x: f32, y: f32, font_size: f32, text: &[&str]) {
+fn draw_text_box(
+    resource_manager: &ResourceManager,
+    x: f32,
+    y: f32,
+    font_size: f32,
+    text: &[&str],
+) {
     const MARGIN: f32 = 0.25;
     if text.is_empty() {
         return;
     }
     let width = text
         .iter()
-        .map(|line| measure_text(line, None, font_size as u16, 1.0).width.ceil() as i32)
+        .map(|line| {
+            measure_text(line, Some(&resource_manager.font), font_size as u16, 1.0)
+                .width
+                .ceil() as i32
+        })
         .max()
         .unwrap_or(0) as f32;
-    let text_height = measure_text(text[0], None, font_size as u16, 1.0).height;
+    let text_height =
+        measure_text(text[0], Some(&resource_manager.font), font_size as u16, 1.0).height;
     let margin = text_height * MARGIN;
     let height = (text_height + margin) * text.len() as f32;
     let y_start = y - height;
@@ -324,43 +374,69 @@ fn draw_text_box(x: f32, y: f32, font_size: f32, text: &[&str]) {
     );
     for (i, line) in text.iter().enumerate() {
         let current_y = y_start + i as f32 * (text_height + margin);
-        draw_text(line, x, current_y, font_size, WHITE);
+        draw_text_ex(
+            line,
+            x,
+            current_y,
+            TextParams {
+                font: Some(&resource_manager.font),
+                font_size: font_size as u16,
+                color: WHITE,
+                ..Default::default()
+            },
+        );
     }
 }
 
-pub fn draw_current_level_number(level: usize) {
-    const FONT_SIZE: f32 = 0.08;
+pub fn draw_current_level_number(resource_manager: &ResourceManager, level: usize) {
+    const FONT_SIZE: f32 = 0.03;
     const MARGIN: f32 = 10.0;
     const SHADOW_OFFSET: f32 = 2.0;
     const SHADOW_COLOR: Color = Color::from_rgba(140, 140, 140, 255);
     let height = screen_height();
-    let font_size = height * FONT_SIZE;
+    let font_size = (height * FONT_SIZE) as u16;
     let text = format!("Level {}", level + 1);
-    let text_dimensions = measure_text(&text, None, font_size as u16, 1.0);
+    let font = Some(&resource_manager.font);
+    let text_dimensions = measure_text(&text, font, font_size, 1.0);
     let y = MARGIN + height - text_dimensions.height;
 
-    draw_text(
+    draw_text_ex(
         &text,
         MARGIN + SHADOW_OFFSET,
         y + SHADOW_OFFSET,
-        font_size,
-        SHADOW_COLOR,
+        TextParams {
+            font,
+            font_size,
+            color: SHADOW_COLOR,
+            ..Default::default()
+        },
     );
-    draw_text(&text, MARGIN, y, font_size, WHITE);
+    draw_text_ex(
+        &text,
+        MARGIN,
+        y,
+        TextParams {
+            font,
+            font_size,
+            color: WHITE,
+            ..Default::default()
+        },
+    );
 }
 
-fn draw_centered_in_game_text(text: &[&str]) {
+fn draw_centered_in_game_text(resource_manager: &ResourceManager, text: &[&str]) {
     const Y: f32 = 0.25;
-    const FONT_SIZE: f32 = 0.08;
+    const FONT_SIZE: f32 = 0.04;
     const SHADOW_OFFSET: f32 = 0.005;
     const MARGIN: f32 = 0.01;
     let (width, height) = screen_size();
+    let font = Some(&resource_manager.font);
     let font_size = (height * FONT_SIZE) as u16;
     let shadow_offset = height * SHADOW_OFFSET;
     let start_y = height * Y;
     let rect_margin = MARGIN * height;
     for (i, line) in text.iter().enumerate() {
-        let text_size = measure_text(line, None, font_size, 1.0);
+        let text_size = measure_text(line, font, font_size, 1.0);
         let x = (width - text_size.width) / 2.0;
         let y = start_y + i as f32 * (text_size.height + 2.0 * rect_margin);
 
@@ -381,6 +457,7 @@ fn draw_centered_in_game_text(text: &[&str]) {
             y + shadow_offset,
             TextParams {
                 font_size,
+                font,
                 color: Color::from_rgba(255, 255, 255, 60),
                 ..Default::default()
             },
@@ -391,6 +468,7 @@ fn draw_centered_in_game_text(text: &[&str]) {
             y,
             TextParams {
                 font_size,
+                font,
                 color: WHITE,
                 ..Default::default()
             },

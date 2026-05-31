@@ -1,6 +1,7 @@
 use macroquad::{
     audio::{Sound, load_sound_from_bytes},
     prelude::info,
+    text::{Font, load_ttf_font_from_bytes},
     texture::{FilterMode, Texture2D, build_textures_atlas},
 };
 
@@ -27,6 +28,8 @@ const BRONZE_MEDAL: &[u8] = include_bytes!("../resources/bronze_medal.png");
 const SILVER_MEDAL: &[u8] = include_bytes!("../resources/silver_medal.png");
 const GOLD_MEDAL: &[u8] = include_bytes!("../resources/gold_medal.png");
 
+const FONT: &[u8; 8776] = include_bytes!("../resources/font.ttf");
+
 pub struct Sounds {
     pub click: Sound,
     pub hit: Sound,
@@ -46,6 +49,7 @@ impl Sounds {
 
 pub struct ResourceManager {
     pub sounds: Sounds,
+    pub font: Font,
     pub bow: Vec<Texture2D>,
     pub arrow: Texture2D,
     pub planets: Vec<Texture2D>,
@@ -68,6 +72,7 @@ impl ResourceManager {
             ufo: Self::load_texture(UFO),
             ufo_field: Self::load_texture(UFO_FIELD),
             medals: Self::load_medals(),
+            font: load_ttf_font_from_bytes(FONT).expect("Error loading font"),
         };
         build_textures_atlas();
 

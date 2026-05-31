@@ -96,12 +96,12 @@ impl<'a> Game<'a> {
 
         set_default_camera();
         match self.level.arrow.state {
-            ArrowState::Hit => draw_win_text(self.level.accuracy),
-            ArrowState::Missed => draw_miss_text(),
+            ArrowState::Hit => draw_win_text(self.resource_manager, self.level.accuracy),
+            ArrowState::Missed => draw_miss_text(self.resource_manager),
             _ => {}
         }
         self.handle_in_game_buttons();
-        draw_current_level_number(self.current_level_index);
+        draw_current_level_number(self.resource_manager, self.current_level_index);
     }
 
     pub fn update(&mut self, delta: f32, level_selection: &mut LevelSelection) {
