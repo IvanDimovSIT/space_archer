@@ -12,7 +12,7 @@ use macroquad::{
 };
 
 use crate::{
-    model::{Arrow, Barier, Bow, Planet, Target, TargetFlip, UFO, UFOTemplate},
+    model::{Arrow, Barier, Bow, Key, KeyTemplate, Planet, Target, TargetFlip, UFO, UFOTemplate},
     resource_manager::ResourceManager,
 };
 
@@ -99,6 +99,25 @@ pub fn draw_target(target: &Target, resource_manager: &ResourceManager) {
     // draw_rectangle(bb.x, bb.y, bb.w, bb.h, Color::from_rgba(255, 255, 255, 80));
 }
 
+pub fn draw_key(key: &Key, time: f32, resource_manager: &ResourceManager) {
+    const SWITCH_TEXTURES_SPEED: f32 = 1.5;
+    let bb = key.bounding_box();
+    let image_index = (SWITCH_TEXTURES_SPEED * time) as usize % resource_manager.keys.len();
+    let texture = &resource_manager.keys[image_index];
+
+    draw_texture_ex(
+        texture,
+        bb.x,
+        bb.y,
+        WHITE,
+        DrawTextureParams {
+            dest_size: Some(KeyTemplate::SIZE),
+            ..Default::default()
+        },
+    );
+    // draw_rectangle_lines(bb.x, bb.y, bb.w, bb.h, 2.0, WHITE);
+}
+
 pub fn draw_planet(planet: &Planet, resource_manager: &ResourceManager) {
     let top_left = planet.track.position - Vec2::splat(planet.size);
     let texture = resource_manager.get_planet_texture(planet.appearance);
@@ -147,17 +166,23 @@ pub fn draw_miss_text(resource_manager: &ResourceManager) {
 
 pub fn draw_barier(barier: &Barier, time: f32) {
     const BARIER_BASE_COLOR: Color = Color::from_rgba(130, 140, 255, 0);
+    const LOCKED_BASE_COLOR: Color = Color::from_rgba(255, 60, 60, 0);
     const LINES_THICKNESS: f32 = 2.0;
     const MAX_BRIGHTNESS: f32 = 0.9;
     const MIN_BRIGHTNESS: f32 = 0.7;
     const CHANGE_BRIGHTNESS_SPEED: f32 = 2.0;
 
+    let base_color = if barier.locked {
+        LOCKED_BASE_COLOR
+    } else {
+        BARIER_BASE_COLOR
+    };
     let rect = barier.get_rect();
     let time_sin = (time * CHANGE_BRIGHTNESS_SPEED).sin();
     let barier_brightness = time_sin * MAX_BRIGHTNESS + (1.0 - time_sin) * MIN_BRIGHTNESS;
     let color = Color {
         a: barier_brightness,
-        ..BARIER_BASE_COLOR
+        ..base_color
     };
 
     draw_rectangle(rect.x, rect.y, rect.w, rect.h, color);

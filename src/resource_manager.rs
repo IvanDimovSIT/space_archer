@@ -22,17 +22,22 @@ const UFO: &[u8] = include_bytes!("../resources/ufo.png");
 const UFO_FIELD: &[u8] = include_bytes!("../resources/ufo_field.png");
 const TARGET: &[u8] = include_bytes!("../resources/target.png");
 const BG: &[u8] = include_bytes!("../resources/background.png");
-const CLICK_SOUND: &[u8] = include_bytes!("../resources/click.wav");
-const HIT_SOUND: &[u8] = include_bytes!("../resources/hit.wav");
 const BRONZE_MEDAL: &[u8] = include_bytes!("../resources/bronze_medal.png");
 const SILVER_MEDAL: &[u8] = include_bytes!("../resources/silver_medal.png");
 const GOLD_MEDAL: &[u8] = include_bytes!("../resources/gold_medal.png");
+const KEY1: &[u8] = include_bytes!("../resources/key1.png");
+const KEY2: &[u8] = include_bytes!("../resources/key2.png");
+
+const CLICK_SOUND: &[u8] = include_bytes!("../resources/click.wav");
+const HIT_SOUND: &[u8] = include_bytes!("../resources/hit.wav");
+const PICK_UP_KEY_SOUND: &[u8] = include_bytes!("../resources/pick_up_key.wav");
 
 const FONT: &[u8; 8776] = include_bytes!("../resources/font.ttf");
 
 pub struct Sounds {
     pub click: Sound,
     pub hit: Sound,
+    pub pick_up_key: Sound,
 }
 impl Sounds {
     pub async fn load() -> Self {
@@ -41,6 +46,9 @@ impl Sounds {
                 .await
                 .expect("Error loading click sound"),
             hit: load_sound_from_bytes(HIT_SOUND)
+                .await
+                .expect("Error loading hit sound"),
+            pick_up_key: load_sound_from_bytes(PICK_UP_KEY_SOUND)
                 .await
                 .expect("Error loading hit sound"),
         }
@@ -53,6 +61,7 @@ pub struct ResourceManager {
     pub bow: Vec<Texture2D>,
     pub arrow: Texture2D,
     pub planets: Vec<Texture2D>,
+    pub keys: Vec<Texture2D>,
     pub target: Texture2D,
     pub background: Texture2D,
     pub ufo: Texture2D,
@@ -72,6 +81,7 @@ impl ResourceManager {
             ufo: Self::load_texture(UFO),
             ufo_field: Self::load_texture(UFO_FIELD),
             medals: Self::load_medals(),
+            keys: Self::load_keys(),
             font: load_ttf_font_from_bytes(FONT).expect("Error loading font"),
         };
         build_textures_atlas();
@@ -97,6 +107,12 @@ impl ResourceManager {
         let planet_files = [BRONZE_MEDAL, SILVER_MEDAL, GOLD_MEDAL];
 
         Self::load_textures(&planet_files)
+    }
+
+    fn load_keys() -> Vec<Texture2D> {
+        let key_files = [KEY1, KEY2];
+
+        Self::load_textures(&key_files)
     }
 
     fn load_bow() -> Vec<Texture2D> {

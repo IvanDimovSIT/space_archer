@@ -9,6 +9,16 @@ pub struct Track<'a> {
     pub position: Vec2,
     pub speed: f32,
 }
+impl<'a> Track<'a> {
+    pub fn new(points: &'a [Vec2], index: usize, speed: f32) -> Self {
+        Self {
+            points,
+            index,
+            position: points[index],
+            speed,
+        }
+    }
+}
 
 pub fn simulate_future_arrow_movement(
     mut arrow: Arrow,

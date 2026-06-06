@@ -38,12 +38,7 @@ impl TargetTemplate {
     pub fn instance(&'_ self) -> Target<'_> {
         Target {
             template: self,
-            track: Track {
-                points: &self.positions,
-                index: self.index,
-                position: self.positions[self.index],
-                speed: self.speed,
-            },
+            track: Track::new(&self.positions, self.index, self.speed),
         }
     }
 }
@@ -119,12 +114,7 @@ impl PlanetTemplate {
 
     pub fn instance(&self) -> Planet<'_> {
         Planet {
-            track: Track {
-                points: &self.positions,
-                index: self.index,
-                position: self.positions[self.index],
-                speed: self.speed,
-            },
+            track: Track::new(&self.positions, self.index, self.speed),
             size: self.size,
             appearance: self.appearance,
         }
@@ -187,14 +177,62 @@ impl Default for Bow {
 }
 
 #[derive(Debug)]
+pub struct KeyTemplate {
+    pub positions: Vec<Vec2>,
+    pub speed: f32,
+    pub index: usize,
+}
+impl KeyTemplate {
+    pub const SIZE: Vec2 = vec2(12.0, 12.0);
+
+    pub fn new(speed: f32, positions: Vec<Vec2>, index: usize) -> Self {
+        assert!(!positions.is_empty());
+        assert!(index < positions.len());
+        if positions.len() > 1 {
+            assert!(speed > 0.01);
+        }
+        Self {
+            speed,
+            positions,
+            index,
+        }
+    }
+
+    pub fn new_static(position: Vec2) -> Self {
+        Self::new(0.0, vec![vec2(position.x, position.y)], 0)
+    }
+
+    pub fn instance(&self) -> Key<'_> {
+        Key {
+            track: Track::new(&self.positions, self.index, self.speed),
+        }
+    }
+}
+#[derive(Debug)]
+pub struct Key<'a> {
+    pub track: Track<'a>,
+}
+impl<'a> Key<'a> {
+    pub const fn bounding_box(&self) -> Rect {
+        Rect {
+            x: self.track.position.x - KeyTemplate::SIZE.x / 2.0,
+            y: self.track.position.y - KeyTemplate::SIZE.y / 2.0,
+            w: KeyTemplate::SIZE.x,
+            h: KeyTemplate::SIZE.y,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct BarierTemplate {
     pub size: Vec2,
     pub positions: Vec<Vec2>,
     pub speed: f32,
     pub index: usize,
+    pub locked: bool,
 }
 impl BarierTemplate {
-    pub fn new(size: Vec2, speed: f32, positions: Vec<Vec2>, index: usize) -> Self {
+    pub fn new(size: Vec2, speed: f32, positions: Vec<Vec2>, index: usize, locked: bool) -> Self {
         assert!(!positions.is_empty());
         assert!(index < positions.len());
         if positions.len() > 1 {
@@ -205,22 +243,25 @@ impl BarierTemplate {
             speed,
             positions,
             index,
+            locked,
         }
     }
 
-    pub fn new_static(rect: Rect) -> Self {
-        Self::new(vec2(rect.w, rect.h), 0.0, vec![vec2(rect.x, rect.y)], 0)
+    pub fn new_static(rect: Rect, locked: bool) -> Self {
+        Self::new(
+            vec2(rect.w, rect.h),
+            0.0,
+            vec![vec2(rect.x, rect.y)],
+            0,
+            locked,
+        )
     }
 
     pub fn instance(&self) -> Barier<'_> {
         Barier {
-            track: Track {
-                points: &self.positions,
-                index: self.index,
-                position: self.positions[self.index],
-                speed: self.speed,
-            },
+            track: Track::new(&self.positions, self.index, self.speed),
             size: self.size,
+            locked: self.locked,
         }
     }
 }
@@ -229,6 +270,7 @@ impl BarierTemplate {
 pub struct Barier<'a> {
     pub track: Track<'a>,
     pub size: Vec2,
+    pub locked: bool,
 }
 impl<'a> Barier<'a> {
     pub fn get_rect(&self) -> Rect {
@@ -305,6 +347,7 @@ pub struct LevelTemplate {
     pub planets: Vec<PlanetTemplate>,
     pub bariers: Vec<BarierTemplate>,
     pub ufos: Vec<UFOTemplate>,
+    pub keys: Vec<KeyTemplate>,
 }
 impl LevelTemplate {
     pub fn instance(&'_ self) -> Level<'_> {
@@ -315,6 +358,7 @@ impl LevelTemplate {
             planets: self.planets.iter().map(PlanetTemplate::instance).collect(),
             bariers: self.bariers.iter().map(BarierTemplate::instance).collect(),
             ufos: self.ufos.iter().map(UFOTemplate::instance).collect(),
+            keys: self.keys.iter().map(KeyTemplate::instance).collect(),
             time: 0.0,
             accuracy: 0.0,
         }
@@ -327,6 +371,7 @@ impl Default for LevelTemplate {
             planets: vec![],
             bariers: vec![],
             ufos: vec![],
+            keys: vec![],
         }
     }
 }
@@ -337,6 +382,7 @@ pub struct Level<'a> {
     pub planets: Vec<Planet<'a>>,
     pub bariers: Vec<Barier<'a>>,
     pub ufos: Vec<UFO<'a>>,
+    pub keys: Vec<Key<'a>>,
     pub bow: Bow,
     pub arrow: Arrow,
     pub accuracy: f32,

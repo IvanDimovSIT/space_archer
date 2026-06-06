@@ -13,8 +13,8 @@ use macroquad::{
 use crate::{
     draw::{
         accuracy_to_int, draw_arrow, draw_background, draw_barier, draw_bow,
-        draw_current_level_number, draw_future_arrow_movements, draw_miss_text, draw_planet,
-        draw_target, draw_ufo, draw_win_text,
+        draw_current_level_number, draw_future_arrow_movements, draw_key, draw_miss_text,
+        draw_planet, draw_target, draw_ufo, draw_win_text,
     },
     level_select::LevelSelection,
     model::{Arrow, ArrowState, Bow, Level, LevelTemplate, TargetFlip},
@@ -90,6 +90,9 @@ impl<'a> Game<'a> {
         for b in &self.level.bariers {
             draw_barier(b, self.level.time);
         }
+        for k in &self.level.keys {
+            draw_key(k, self.level.time, self.resource_manager);
+        }
         for u in &self.level.ufos {
             draw_ufo(u, self.resource_manager);
         }
@@ -129,15 +132,18 @@ impl<'a> Game<'a> {
     }
 
     fn update_static_movement(&mut self, delta: f32) {
-        calculate_static_movement(&mut self.level.target.track, delta);
-        for planet in &mut self.level.planets {
-            calculate_static_movement(&mut planet.track, delta);
-        }
-        for barier in &mut self.level.bariers {
-            calculate_static_movement(&mut barier.track, delta);
-        }
-        for ufo in &mut self.level.ufos {
-            calculate_static_movement(&mut ufo.track, delta);
+        let tracks = self
+            .level
+            .planets
+            .iter_mut()
+            .map(|x| &mut x.track)
+            .chain(self.level.bariers.iter_mut().map(|x| &mut x.track))
+            .chain(self.level.ufos.iter_mut().map(|x| &mut x.track))
+            .chain(self.level.keys.iter_mut().map(|x| &mut x.track))
+            .chain(vec![&mut self.level.target.track]);
+
+        for track in tracks {
+            calculate_static_movement(track, delta);
         }
     }
 
@@ -197,6 +203,7 @@ impl<'a> Game<'a> {
                     self.level.arrow.state = ArrowState::Missed;
                 }
                 self.detect_arrow_hit_target(level_selection);
+                self.detect_arrow_hit_key();
             }
             _ => {}
         }
@@ -221,6 +228,31 @@ impl<'a> Game<'a> {
         }
 
         false
+    }
+
+    fn detect_arrow_hit_key(&mut self) {
+        let mut hit_key_index = None;
+        for (index, key) in self.level.keys.iter().enumerate() {
+            if !key.bounding_box().contains(self.level.arrow.position) {
+                continue;
+            }
+
+            hit_key_index = Some(index);
+            break;
+        }
+
+        if let Some(index) = hit_key_index {
+            self.level.keys.remove(index);
+            if self.level.keys.is_empty() {
+                self.remove_locked_bariers();
+            }
+            self.level.arrow = Arrow::default();
+            play_sound_once(&self.resource_manager.sounds.pick_up_key);
+        }
+    }
+
+    fn remove_locked_bariers(&mut self) {
+        self.level.bariers.retain(|b| !b.locked);
     }
 
     fn detect_arrow_hit_target(&mut self, level_selection: &mut LevelSelection) {
