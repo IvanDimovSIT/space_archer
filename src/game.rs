@@ -13,11 +13,11 @@ use macroquad::{
 use crate::{
     draw::{
         accuracy_to_int, draw_arrow, draw_background, draw_barier, draw_bow,
-        draw_current_level_number, draw_future_arrow_movements, draw_key, draw_miss_text,
-        draw_planet, draw_target, draw_ufo, draw_win_text,
+        draw_current_level_number, draw_effect, draw_future_arrow_movements, draw_key,
+        draw_miss_text, draw_planet, draw_target, draw_ufo, draw_win_text,
     },
     level_select::LevelSelection,
-    model::{Arrow, ArrowState, Bow, Level, LevelTemplate, TargetFlip},
+    model::{Arrow, ArrowState, Bow, Effect, Level, LevelTemplate, TargetFlip},
     physics::{
         arrow_has_hit_barrier, calculate_static_movement, move_arrow,
         simulate_future_arrow_movement,
@@ -81,6 +81,9 @@ impl<'a> Game<'a> {
             );
             draw_future_arrow_movements(&future_movements);
         }
+        for effect in &self.level.effects {
+            draw_effect(effect, self.resource_manager);
+        }
         draw_target(&self.level.target, self.resource_manager);
         draw_arrow(&self.level.arrow, self.resource_manager);
         draw_bow(&self.level.bow, self.resource_manager);
@@ -119,10 +122,19 @@ impl<'a> Game<'a> {
             self.level.time += delta;
             self.update_static_movement(delta);
             self.update_arrow(delta, player_aim, level_selection);
+            self.update_effects(delta);
         }
         if is_key_released(KeyCode::R) || is_key_released(KeyCode::Escape) {
             self.reset_level();
         }
+    }
+
+    fn update_effects(&mut self, delta: f32) {
+        for effect in &mut self.level.effects {
+            effect.life -= delta;
+        }
+
+        self.level.effects.retain(|eff| eff.life > 0.0);
     }
 
     pub fn set_level(&mut self, new_level: usize) {
@@ -191,13 +203,24 @@ impl<'a> Game<'a> {
                 }
             }
             ArrowState::Moving => {
+                const DISTANCE_FOR_TRAIL: f32 = 8.0;
                 self.level.arrow.flight_time_s += delta;
+                let start_location = self.level.arrow.position;
                 move_arrow(
                     &mut self.level.arrow,
                     &self.level.planets,
                     &self.level.ufos,
                     delta,
                 );
+                let end_location = self.level.arrow.position;
+                self.level.arrow.flight_distance_before_trail +=
+                    start_location.distance(end_location);
+                if self.level.arrow.flight_distance_before_trail >= DISTANCE_FOR_TRAIL {
+                    self.level.arrow.flight_distance_before_trail -= DISTANCE_FOR_TRAIL;
+                    self.level
+                        .effects
+                        .push(Effect::new_trail(start_location, end_location));
+                }
                 if self.arrow_has_missed() {
                     info!("Missed, location: {}", self.level.arrow.position);
                     self.level.arrow.state = ArrowState::Missed;
@@ -242,6 +265,8 @@ impl<'a> Game<'a> {
         }
 
         if let Some(index) = hit_key_index {
+            let key_pos = self.level.keys[index].track.position;
+            self.level.effects.push(Effect::new_key_pickup(key_pos));
             self.level.keys.remove(index);
             if self.level.keys.is_empty() {
                 self.remove_locked_bariers();

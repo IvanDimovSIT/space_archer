@@ -142,6 +142,7 @@ pub struct Arrow {
     pub velocity: Vec2,
     pub state: ArrowState,
     pub flight_time_s: f32,
+    pub flight_distance_before_trail: f32,
 }
 impl Arrow {
     pub const SIZE: f32 = 15.0;
@@ -153,6 +154,7 @@ impl Default for Arrow {
             velocity: vec2(1.0, 0.0),
             state: ArrowState::Unfired,
             flight_time_s: 0.0,
+            flight_distance_before_trail: 0.0,
         }
     }
 }
@@ -361,6 +363,7 @@ impl LevelTemplate {
             keys: self.keys.iter().map(KeyTemplate::instance).collect(),
             time: 0.0,
             accuracy: 0.0,
+            effects: vec![],
         }
     }
 }
@@ -377,6 +380,39 @@ impl Default for LevelTemplate {
 }
 
 #[derive(Debug)]
+pub enum EffectType {
+    KeyPickUp,
+    Trail { pos2: Vec2 },
+}
+
+#[derive(Debug)]
+pub struct Effect {
+    pub life: f32,
+    pub effect_type: EffectType,
+    pub position: Vec2,
+}
+impl Effect {
+    pub const PICKUP_KEY_SIZE: Vec2 = vec2(17.0, 17.0);
+    pub const TRAIL_LIFE: f32 = 2.0;
+
+    pub fn new_key_pickup(position: Vec2) -> Self {
+        Self {
+            life: 0.2,
+            effect_type: EffectType::KeyPickUp,
+            position,
+        }
+    }
+
+    pub fn new_trail(position1: Vec2, position2: Vec2) -> Self {
+        Self {
+            life: Self::TRAIL_LIFE,
+            effect_type: EffectType::Trail { pos2: position2 },
+            position: position1,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Level<'a> {
     pub target: Target<'a>,
     pub planets: Vec<Planet<'a>>,
@@ -385,6 +421,7 @@ pub struct Level<'a> {
     pub keys: Vec<Key<'a>>,
     pub bow: Bow,
     pub arrow: Arrow,
+    pub effects: Vec<Effect>,
     pub accuracy: f32,
     pub time: f32,
 }

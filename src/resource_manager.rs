@@ -27,6 +27,7 @@ const SILVER_MEDAL: &[u8] = include_bytes!("../resources/silver_medal.png");
 const GOLD_MEDAL: &[u8] = include_bytes!("../resources/gold_medal.png");
 const KEY1: &[u8] = include_bytes!("../resources/key1.png");
 const KEY2: &[u8] = include_bytes!("../resources/key2.png");
+const PICKUP_KEY_EFFECT: &[u8] = include_bytes!("../resources/pickup_key_effect.png");
 
 const CLICK_SOUND: &[u8] = include_bytes!("../resources/click.wav");
 const HIT_SOUND: &[u8] = include_bytes!("../resources/hit.wav");
@@ -66,6 +67,7 @@ pub struct ResourceManager {
     pub background: Texture2D,
     pub ufo: Texture2D,
     pub ufo_field: Texture2D,
+    pub pickup_key_effect: Texture2D,
     pub medals: Vec<Texture2D>,
 }
 impl ResourceManager {
@@ -80,6 +82,7 @@ impl ResourceManager {
             background: Self::load_texture(BG),
             ufo: Self::load_texture(UFO),
             ufo_field: Self::load_texture(UFO_FIELD),
+            pickup_key_effect: Self::load_texture(PICKUP_KEY_EFFECT),
             medals: Self::load_medals(),
             keys: Self::load_keys(),
             font: load_ttf_font_from_bytes(FONT).expect("Error loading font"),

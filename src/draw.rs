@@ -5,14 +5,17 @@ use macroquad::{
     input::mouse_position,
     math::{Rect, Vec2, vec2},
     miniquad::window::screen_size,
-    shapes::{draw_circle, draw_rectangle, draw_rectangle_lines},
+    shapes::{draw_circle, draw_line, draw_rectangle, draw_rectangle_lines},
     text::{TextParams, draw_text_ex, measure_text},
     texture::{DrawTextureParams, Texture2D, draw_texture_ex},
     window::{clear_background, screen_height},
 };
 
 use crate::{
-    model::{Arrow, Barier, Bow, Key, KeyTemplate, Planet, Target, TargetFlip, UFO, UFOTemplate},
+    model::{
+        Arrow, Barier, Bow, Effect, EffectType, Key, KeyTemplate, Planet, Target, TargetFlip, UFO,
+        UFOTemplate,
+    },
     resource_manager::ResourceManager,
 };
 
@@ -42,6 +45,37 @@ pub fn draw_arrow(arrow: &Arrow, resource_manager: &ResourceManager) {
         },
     );
     //draw_circle(arrow.position.x, arrow.position.y, 1.0, RED);
+}
+
+pub fn draw_effect(effect: &Effect, resource_manager: &ResourceManager) {
+    match effect.effect_type {
+        EffectType::KeyPickUp => {
+            draw_texture_ex(
+                &resource_manager.pickup_key_effect,
+                effect.position.x - Effect::PICKUP_KEY_SIZE.x / 2.0,
+                effect.position.y - Effect::PICKUP_KEY_SIZE.y / 2.0,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(Effect::PICKUP_KEY_SIZE),
+                    ..Default::default()
+                },
+            );
+        }
+        EffectType::Trail { pos2 } => {
+            let transparency = effect.life / Effect::TRAIL_LIFE;
+            draw_line(
+                effect.position.x,
+                effect.position.y,
+                pos2.x,
+                pos2.y,
+                0.5,
+                Color {
+                    a: transparency,
+                    ..WHITE
+                },
+            );
+        }
+    }
 }
 
 pub fn draw_bow(bow: &Bow, resource_manager: &ResourceManager) {

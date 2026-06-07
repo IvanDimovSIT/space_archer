@@ -1,4 +1,7 @@
-use macroquad::math::{Rect, vec2};
+use macroquad::{
+    math::{Rect, vec2},
+    prelude::error,
+};
 
 use crate::model::{
     BarierTemplate, KeyTemplate, LevelTemplate, PlanetAppearance, PlanetTemplate, Target,
@@ -6,7 +9,7 @@ use crate::model::{
 };
 
 pub fn create_levels() -> Vec<LevelTemplate> {
-    vec![
+    let levels = vec![
         introduction_level(),
         top_target_level(),
         moving_top_target_level(),
@@ -22,7 +25,25 @@ pub fn create_levels() -> Vec<LevelTemplate> {
         underside_with_moving_barier_level(),
         key_introdiction_level(),
         two_keys_with_planet_level(),
-    ]
+        moving_key_between_planets_level(),
+    ];
+    validate_levels(&levels);
+
+    levels
+}
+
+fn validate_levels(levels: &[LevelTemplate]) {
+    for (ind, level) in levels.iter().enumerate() {
+        let has_keys = !level.keys.is_empty();
+        let has_locked_bariers = level.bariers.iter().any(|b| b.locked);
+
+        if has_keys != has_locked_bariers {
+            error!(
+                "Error in level template {}, has_keys != has_locked_bariers",
+                ind
+            );
+        }
+    }
 }
 
 fn introduction_level() -> LevelTemplate {
@@ -288,6 +309,25 @@ fn two_keys_with_planet_level() -> LevelTemplate {
         bariers: vec![barier1, barier2],
         keys: vec![key1, key2],
         planets: vec![planet],
+        ..Default::default()
+    }
+}
+
+fn moving_key_between_planets_level() -> LevelTemplate {
+    let target = TargetTemplate::new_static(TargetFlip::Right, vec2(195.0, -35.0));
+    let planet1 = PlanetTemplate::new_static(10.0, vec2(60.0, 0.0), PlanetAppearance::Red);
+    let planet2 = PlanetTemplate::new_static(17.0, vec2(150.0, 0.0), PlanetAppearance::Blue);
+    let key1 = KeyTemplate::new(50.0, vec![vec2(80.0, 0.0), vec2(120.0, 0.0)], 0);
+    let key2 = KeyTemplate::new_static(vec2(180.0, 40.0));
+    let barier1 = BarierTemplate::new_static(Rect::new(160.0, -80.0, 10.0, 60.0), true);
+    let barier2 = BarierTemplate::new_static(Rect::new(165.0, 10.0, 60.0, 10.0), false);
+    let barier3 = BarierTemplate::new_static(Rect::new(50.0, -80.0, 10.0, 60.0), false);
+
+    LevelTemplate {
+        target,
+        planets: vec![planet1, planet2],
+        bariers: vec![barier1, barier2, barier3],
+        keys: vec![key1, key2],
         ..Default::default()
     }
 }
