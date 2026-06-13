@@ -62,6 +62,10 @@ pub fn draw_effect(effect: &Effect, resource_manager: &ResourceManager) {
             );
         }
         EffectType::Trail { pos2 } => {
+            const DRAW_DELAY: f32 = 0.1;
+            if Effect::TRAIL_LIFE - effect.life <= DRAW_DELAY {
+                return;
+            }
             let transparency = effect.life / Effect::TRAIL_LIFE;
             draw_line(
                 effect.position.x,
@@ -259,7 +263,7 @@ pub enum HoveredMedal {
 }
 
 pub const SILVER_MEDAL_REQUIRED_AVERAGE_ACC: i32 = 80;
-pub const GOLD_MEDAL_REQUIRED_ACC: i32 = 100;
+pub const GOLD_MEDAL_REQUIRED_AVERAGE_ACC: i32 = 95;
 
 pub fn draw_medals(
     resource_manager: &ResourceManager,
@@ -288,16 +292,25 @@ pub fn draw_medals(
         .iter()
         .map(|s| s.as_ref())
         .collect::<Vec<_>>();
-    let gold_medal_text = ["Gold Medal", "Complete all levels with 100% accuracy"];
+    let gold_medal_text_owned = [
+        "Gold Medal".to_owned(),
+        format!(
+            "Complete all levels with an average of {GOLD_MEDAL_REQUIRED_AVERAGE_ACC}% accuracy"
+        ),
+        format!("Current: {average_accuracy}%"),
+    ];
+    let gold_medal_text = gold_medal_text_owned
+        .iter()
+        .map(|s| s.as_ref())
+        .collect::<Vec<_>>();
 
+    let average_accuracy = completed_levels.iter().sum::<i32>() / total_levels as i32;
     let medals_count = if completed_levels.len() != total_levels {
         0
-    } else if completed_levels
-        .iter()
-        .all(|acc| *acc == GOLD_MEDAL_REQUIRED_ACC)
+    } else if average_accuracy > GOLD_MEDAL_REQUIRED_AVERAGE_ACC
     {
         3
-    } else if completed_levels.iter().sum::<i32>() / total_levels as i32
+    } else if average_accuracy
         >= SILVER_MEDAL_REQUIRED_AVERAGE_ACC
     {
         2

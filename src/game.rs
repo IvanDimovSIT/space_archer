@@ -203,7 +203,7 @@ impl<'a> Game<'a> {
                 }
             }
             ArrowState::Moving => {
-                const DISTANCE_FOR_TRAIL: f32 = 8.0;
+                const DISTANCE_FOR_TRAIL: f32 = 10.0;
                 self.level.arrow.flight_time_s += delta;
                 let start_location = self.level.arrow.position;
                 move_arrow(
@@ -217,9 +217,7 @@ impl<'a> Game<'a> {
                     start_location.distance(end_location);
                 if self.level.arrow.flight_distance_before_trail >= DISTANCE_FOR_TRAIL {
                     self.level.arrow.flight_distance_before_trail -= DISTANCE_FOR_TRAIL;
-                    self.level
-                        .effects
-                        .push(Effect::new_trail(start_location, end_location));
+                    self.add_trail(start_location, end_location);
                 }
                 if self.arrow_has_missed() {
                     info!("Missed, location: {}", self.level.arrow.position);
@@ -230,6 +228,17 @@ impl<'a> Game<'a> {
             }
             _ => {}
         }
+    }
+
+    fn add_trail(&mut self, start_location: Vec2, end_location: Vec2) {
+        const TRAIL_LENGTH: f32 = 4.0;
+        let origin = end_location;
+        let direction = (origin - start_location).normalize_or_zero();
+        let target = origin + direction * TRAIL_LENGTH;
+
+        self.level
+            .effects
+            .push(Effect::new_trail(origin, target));
     }
 
     fn compute_arrow_position_unfired(&self) -> Vec2 {
@@ -344,6 +353,7 @@ impl<'a> Game<'a> {
         const MARGIN: f32 = 10.0;
         const BUTTON_RELATIVE_SIZE: f32 = 0.1;
         const RESET_BUTTON_RELATIVE_SIZE_TO_BACK: f32 = 2.5;
+        const RESET_BUTTON_APPEAR_DELAY_S: f32 = 1.5;
         let back_size = BUTTON_RELATIVE_SIZE * screen_height();
         if draw_button(
             self.resource_manager,
@@ -356,7 +366,7 @@ impl<'a> Game<'a> {
         }
 
         let reset_button_width = RESET_BUTTON_RELATIVE_SIZE_TO_BACK * back_size;
-        let should_draw_reset_button = (self.level.arrow.flight_time_s > 3.0
+        let should_draw_reset_button = (self.level.arrow.flight_time_s > RESET_BUTTON_APPEAR_DELAY_S
             && self.level.arrow.state == ArrowState::Moving)
             || matches!(self.level.arrow.state, ArrowState::Missed | ArrowState::Hit);
         if should_draw_reset_button

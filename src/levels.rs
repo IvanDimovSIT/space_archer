@@ -26,6 +26,7 @@ pub fn create_levels() -> Vec<LevelTemplate> {
         key_introdiction_level(),
         two_keys_with_planet_level(),
         moving_key_between_planets_level(),
+        ufo_assist_planet_with_key_level()
     ];
     validate_levels(&levels);
 
@@ -328,6 +329,25 @@ fn moving_key_between_planets_level() -> LevelTemplate {
         planets: vec![planet1, planet2],
         bariers: vec![barier1, barier2, barier3],
         keys: vec![key1, key2],
+        ..Default::default()
+    }
+}
+
+fn ufo_assist_planet_with_key_level() -> LevelTemplate {
+    let target = TargetTemplate::new(TargetFlip::Bottom, 8.0, vec![vec2(145.0, 20.0), vec2(170.0, 20.0)], 0);
+    let planet1 = PlanetTemplate::new_static(12.0, vec2(120.0, 20.0), PlanetAppearance::Red);
+    let key1 = KeyTemplate::new_static(vec2(126.0, 45.0));
+    let barier1 = BarierTemplate::new_static(Rect::new(60.0, 0.0, 10.0, 120.0), false);
+    let barier2 = BarierTemplate::new_static(Rect::new(132.0, 30.0, 80.0, 10.0), false);
+    let barier3 = BarierTemplate::new_static(Rect::new(110.0, -100.0, 10.0, 105.0), true);
+    let ufo = UFOTemplate::new(vec2(25.0, 70.0), 22.0, vec![vec2(40.0, -40.0), vec2(120.0, -40.0)], 1);
+
+    LevelTemplate {
+        target,
+        planets: vec![planet1],
+        bariers: vec![barier1, barier2, barier3],
+        keys: vec![key1],
+        ufos: vec![ufo],
         ..Default::default()
     }
 }

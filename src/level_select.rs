@@ -10,7 +10,7 @@ use std::fmt::Write;
 
 use crate::{
     draw::{
-        GOLD_MEDAL_REQUIRED_ACC, HoveredMedal, SILVER_MEDAL_REQUIRED_AVERAGE_ACC, draw_background,
+        GOLD_MEDAL_REQUIRED_AVERAGE_ACC, HoveredMedal, SILVER_MEDAL_REQUIRED_AVERAGE_ACC, draw_background,
         draw_medals,
     },
     model::LevelTemplate,
@@ -136,7 +136,7 @@ impl LevelSelection {
             HoveredMedal::None => false,
             HoveredMedal::Bronze => accuracy <= 0,
             HoveredMedal::Silver => accuracy < SILVER_MEDAL_REQUIRED_AVERAGE_ACC,
-            HoveredMedal::Gold => accuracy < GOLD_MEDAL_REQUIRED_ACC,
+            HoveredMedal::Gold => accuracy < GOLD_MEDAL_REQUIRED_AVERAGE_ACC,
         };
 
         if is_highlighted {
